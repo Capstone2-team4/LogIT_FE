@@ -7,6 +7,10 @@ const Login = () => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const navigate = useNavigate();
 
+  const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
+  const REDIRECT_URI = import.meta.env.VITE_GITHUB_REDIRECT_URI;
+  const SCOPE = import.meta.env.VITE_GITHUB_SCOPE;
+
   const goSignupPage = () => {
     navigate("/signup");
   };
@@ -23,6 +27,11 @@ const Login = () => {
 
   const handleGithubLogin = () => {
     console.log("🔐 GitHub 로그인 시도!");
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+      REDIRECT_URI
+    )}&scope=${encodeURIComponent(SCOPE)}`;
+
+    window.location.href = githubAuthUrl;
   };
 
   return (
