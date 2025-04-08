@@ -5,7 +5,7 @@ const EditorArea = () => {
   const [editorTitle, setEditorTitle] = useState("");
 
   return (
-    <div className="flex-1 py-10">
+    <div className="flex-1 max-w-3xl py-10">
       <div className="border rounded-md h-full flex flex-col">
         <div className="border-b p-3">
           <input

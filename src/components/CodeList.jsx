@@ -20,7 +20,7 @@ const CodeList = () => {
   };
 
   return (
-    <div className="mt-8">
+    <div className="mt-8 w-full">
       <div className="flex items-center justify-between mb-2 relative">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>

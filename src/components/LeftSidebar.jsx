@@ -1,32 +1,17 @@
 import { Link } from "react-router-dom";
 import { Home, Bell, FileText, User } from "lucide-react";
+import logo from "../assets/LogIT_Logo.png"; // 로고 이미지
 
 const LeftSidebar = () => {
   return (
     <div className="w-14 border-r flex flex-col items-center">
       <div className="py-4 border-b w-full flex justify-center">
         <div className="flex flex-col items-center">
-          <div className="relative w-8 h-8">
-            <svg viewBox="0 0 24 24" className="w-full h-full">
-              <rect
-                x="2"
-                y="4"
-                width="20"
-                height="16"
-                rx="2"
-                stroke="currentColor"
-                strokeWidth="2"
-                fill="none"
-              />
-              <path
-                d="M8 10h8M8 14h4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <span className="text-xs font-bold mt-1">LogIT</span>
+          <img
+            src={logo}
+            alt="LogIT Logo"
+            className="w-15 h-15 object-contain"
+          />
         </div>
       </div>
 

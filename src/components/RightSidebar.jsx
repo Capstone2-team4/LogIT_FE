@@ -3,7 +3,7 @@ import CodeList from "./CodeList";
 
 const RightSidebar = () => {
   return (
-    <div className="w-72 flex flex-col gap-4 relative py-10">
+    <div className="w-96 flex-1 flex-col gap-4 relative py-10">
       <CodePreviewBox />
       <CodeList />
     </div>
