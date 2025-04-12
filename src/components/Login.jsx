@@ -27,9 +27,7 @@ const Login = () => {
 
   const handleGithubLogin = () => {
     console.log("🔐 GitHub 로그인 시도!");
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-      REDIRECT_URI
-    )}&scope=${encodeURIComponent(SCOPE)}`;
+    const githubAuthUrl = "http://localhost:8080/oauth2/authorization/github";
 
     window.location.href = githubAuthUrl;
   };
