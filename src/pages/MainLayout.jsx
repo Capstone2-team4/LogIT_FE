@@ -54,16 +54,6 @@ const MainLayout = () => {
 
   return (
     <div className="flex flex-col h-screen w-full">
-      {/* 상단 네비게이션 */}
-      <div className="h-12 py-4 flex items-center justify-between px-4 border-b">
-        <h1 className="text-xl font-bold">
-          {currentView === "home" ? "LogIt" : "새 글 작성"}
-        </h1>
-        <button className="px-4 py-1.5 bg-black text-white rounded-full text-sm hover:bg-gray-800 transition-colors">
-          로그아웃
-        </button>
-      </div>
-
       {/* 콘텐츠 영역 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 왼쪽 사이드바 */}

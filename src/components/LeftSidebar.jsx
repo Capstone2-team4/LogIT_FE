@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Home, Bell, FileText, User } from "lucide-react";
+import { Home, GitCommitHorizontal, Ban, User } from "lucide-react";
 import logo from "../assets/LogIT_Logo.png"; // 로고 이미지
 
 const LeftSidebar = ({ onNavigate, currentView }) => {
@@ -26,10 +26,10 @@ const LeftSidebar = ({ onNavigate, currentView }) => {
           <Home className="w-5 h-5" />
         </button>
         <Link to="#" className="p-2 rounded-md hover:bg-gray-100">
-          <Bell className="w-5 h-5" />
+          <GitCommitHorizontal className="w-5 h-5" />
         </Link>
         <Link to="#" className="p-2 rounded-md hover:bg-gray-100">
-          <FileText className="w-5 h-5" />
+          <Ban className="w-5 h-5" />
         </Link>
       </div>
 
