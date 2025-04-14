@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const CodeList = () => {
   // Owner, Repository 드롭다운 상태 및 선택값
@@ -8,16 +9,70 @@ const CodeList = () => {
   const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState("Repository");
 
-  const owners = ["Owner1", "Owner2", "Owner3"]; // 나중에 백엔드 데이터로 대체 예정
-  const repositories = ["Repository1", "Repository2", "Repository3"]; // 나중에 백엔드 데이터로 대체 예정
+  const [owners, setOwners] = useState([]);
+  const [repositories, setRepositories] = useState([]);
 
+  // 🔸 Owner 목록 불러오기 (개인 + 조직)
+  useEffect(() => {
+    const fetchOwners = async () => {
+      try {
+
+        const accessToken = localStorage.getItem("accessToken");
+        const config = {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        };
+
+        const userRes = await axios.get("http://localhost:8080/githubs/users/repos", config);
+        const orgRes = await axios.get("http://localhost:8080/githubs/users/org", config);
+
+        const userOwner = { name: userRes.data.result.ownerName, type: "user" };
+        const orgOwners = orgRes.data.result.map((org) => ({
+          name: org.orgName,
+          type: "org",
+        }));
+
+        setOwners([userOwner, ...orgOwners]);
+      } catch (err) {
+        console.error("Owner fetch error:", err);
+      }
+    };
+
+    fetchOwners();
+  }, []);
+
+  // 🔸 특정 Owner 선택 시 해당 Repository 목록 불러오기
+  const selectOwner = async (owner) => {
+    setSelectedOwner(owner.name);
+    setIsOwnerDropdownOpen(false);
+    setSelectedRepo("Repository");
+    try {
+
+      const accessToken = localStorage.getItem("accessToken");
+    const config = {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
+
+      const url =
+        owner.type === "user"
+          ? `http://localhost:8080/githubs/users/repos`
+          : `http://localhost:8080/githubs/users/${owner.name}/repos`;
+
+      const res = await axios.get(url, config);
+      const repoNames = res.data.result.repoList.map((r) => r.repoName);
+      setRepositories(repoNames);
+    } catch (err) {
+      console.error("Repository fetch error:", err);
+    }
+  };
+
+  
   const toggleOwnerDropdown = () => setIsOwnerDropdownOpen((prev) => !prev);
   const toggleRepoDropdown = () => setIsRepoDropdownOpen((prev) => !prev);
 
-  const selectOwner = (owner) => {
-    setSelectedOwner(owner);
-    setIsOwnerDropdownOpen(false);
-  };
 
   const selectRepo = (repo) => {
     setSelectedRepo(repo);
@@ -40,6 +95,8 @@ const CodeList = () => {
     setSelectedCategory(category);
     setIsDropdownOpen(false);
   };
+
+  
 
   return (
     <div className="mt-8 w-full">
@@ -68,14 +125,14 @@ const CodeList = () => {
               </svg>
             </button>
             {isOwnerDropdownOpen && (
-              <div className="absolute left-0 mt-1 w-32 bg-white border rounded shadow z-10">
+              <div className="absolute left-0 mt-1 min-w-max bg-white border rounded shadow z-10">
                 {owners.map((owner) => (
                   <div
-                    key={owner}
+                    key={owner.name}
                     onClick={() => selectOwner(owner)}
                     className="px-3 py-1 text-sm hover:bg-gray-100 cursor-pointer"
                   >
-                    {owner}
+                    {owner.name}
                   </div>
                 ))}
               </div>
@@ -104,7 +161,7 @@ const CodeList = () => {
               </svg>
             </button>
             {isRepoDropdownOpen && (
-              <div className="absolute left-0 mt-1 w-32 bg-white border rounded shadow z-10">
+              <div className="absolute left-0 mt-1 min-w-max bg-white border rounded shadow z-10">
                 {repositories.map((repo) => (
                   <div
                     key={repo}
