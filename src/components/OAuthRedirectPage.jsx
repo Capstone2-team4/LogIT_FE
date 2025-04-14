@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const OAuthRedirectPage = () => {
   const [searchParams] = useSearchParams();
@@ -39,11 +40,17 @@ const OAuthRedirectPage = () => {
 
   // ✅ 여기! login 함수 정의
   const registerGihub = async ({ providerId }) => {
+    const accessToken = localStorage.getItem("accessToken");
     try {
       const response = await axios.post(
         "http://localhost:8080/users/register/github",
         {
           providerId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         }
       );
       return {
