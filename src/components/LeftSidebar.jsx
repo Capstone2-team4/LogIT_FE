@@ -1,8 +1,16 @@
 import { Link } from "react-router-dom";
 import { Home, GitCommitHorizontal, Ban, User } from "lucide-react";
 import logo from "../assets/LogIT_Logo.png"; // 로고 이미지
+import githubLogo from "../assets/github-mark.png"; // 로고 이미지
 
 const LeftSidebar = ({ onNavigate, currentView }) => {
+  const handleRegisterGithub = () => {
+    console.log("🔐 GitHub 로그인 시도!");
+    const githubAuthUrl = "http://localhost:8080/oauth2/authorization/github";
+
+    window.location.href = githubAuthUrl;
+  };
+
   return (
     <div className="w-14 border-r flex flex-col items-center">
       <div className="py-4 border-b w-full flex justify-center">
@@ -31,6 +39,16 @@ const LeftSidebar = ({ onNavigate, currentView }) => {
         <Link to="#" className="p-2 rounded-md hover:bg-gray-100">
           <Ban className="w-5 h-5" />
         </Link>
+      </div>
+
+      <div className="github-logo-container">
+        <img
+          src={githubLogo}
+          alt="Github Logo"
+          className="github-logo"
+          style={{ width: "36px", height: "36px", cursor: "pointer" }}
+          onClick={handleRegisterGithub}
+        />
       </div>
 
       <div className="py-6 flex justify-center">
