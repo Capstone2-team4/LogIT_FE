@@ -6,30 +6,59 @@ const OAuthRedirectPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accessToken = searchParams.get("accessToken");
+    const registerGithubUser = async () => {
+      const providerId = searchParams.get("providerId");
 
-    if (accessToken) {
-      // 👉 accessToken 저장 (예: localStorage, recoil, zustand 등)
-      localStorage.setItem("accessToken", accessToken);
+      if (providerId) {
+        // ✅ 쿼리 파라미터 제거
+        window.history.replaceState({}, "", "/");
 
-      // ✅ 저장 직후 로그로 확인
-      console.log(
-        "✅ accessToken 저장됨:",
-        localStorage.getItem("accessToken")
-      );
+        try {
+          const response = await registerGihub({ providerId });
 
-      // ✅ 리다이렉트 전 쿼리파라미터 제거하고 싶으면:
-      window.history.replaceState({}, "", "/");
+          if (response.success) {
+            console.log("깃허브 등록 성공 ✅", response.data);
 
-      // ✅ 메인 화면으로 이동
-      navigate("/main");
-    } else {
-      console.warn("❌ accessToken이 없음! 로그인 실패 처리");
-      navigate("/login");
-    }
+            navigate("/main");
+          } else {
+            console.error("깃허브 등록 실패 ❌", response.message);
+            alert("깃허브 등록 실패: " + response.message);
+          }
+        } catch (err) {
+          console.error("API 요청 중 에러 ❌", err);
+          alert("서버 요청 중 문제가 발생했습니다.");
+        }
+      } else {
+        console.warn("❌ providerId가 없음! 깃허브 연동 실패 처리");
+        navigate("/main");
+      }
+    };
+
+    registerGithubUser();
   }, []);
 
-  return <div>🔐 로그인 중입니다...</div>;
+  // ✅ 여기! login 함수 정의
+  const registerGihub = async ({ providerId }) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/users/register/github",
+        {
+          providerId,
+        }
+      );
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("register github api error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "register github failed",
+      };
+    }
+  };
+
+  return <div>🔐 깃허브 연동 중입니다...</div>;
 };
 
 export default OAuthRedirectPage;
