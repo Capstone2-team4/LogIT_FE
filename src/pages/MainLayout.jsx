@@ -58,14 +58,17 @@ const MainLayout = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* 왼쪽 사이드바 */}
         <LeftSidebar onNavigate={handleNavigate} currentView={currentView} />
-
-        {/* 중앙 메인 콘텐츠 영역 */}
         <div className="flex-1 p-4 flex gap-4">
-          {currentView === "editor" ? (
-            <EditorArea />
-          ) : (
-            <BlogPostList posts={posts} onNewPost={handleNewPost} />
-          )}
+          {/* 중앙 영역 */}
+          <div className="w-[45%]">
+            {currentView === "editor" ? (
+              <EditorArea />
+            ) : (
+              <BlogPostList posts={posts} onNewPost={handleNewPost} />
+            )}
+          </div>
+
+          {/* 오른쪽 사이드바: 그대로 둠 (RightSidebar는 내부에서 너비 조절함) */}
           <RightSidebar />
         </div>
       </div>
