@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import LeftSidebar from "../components/LeftSidebar";
 import axios from "axios";
+import "./editor.css";
 
 const PostDetail = () => {
   const { id } = useParams();
