@@ -1,18 +1,64 @@
-import { useState } from "react";
-import axios from "axios";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import Image from "@tiptap/extension-image";
+import Youtube from "@tiptap/extension-youtube";
 
-const EditorArea = ({ onUploadSuccess, setPosts }) => {
-  const [editorContent, setEditorContent] = useState("");
+import axios from "axios";
+import API from "../config";
+import { useEffect, useState } from "react";
+import debounce from "lodash.debounce";
+import "./editor.css";
+
+const EditorArea = ({ setPosts, onUploadSuccess }) => {
   const [editorTitle, setEditorTitle] = useState("");
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "내용을 입력하세요..." }),
+      TaskList,
+      TaskItem,
+      Image,
+      Youtube.configure({ width: 640, height: 360 }),
+    ],
+    editorProps: {
+      attributes: {
+        class: "prose prose-lg max-w-none editor-wrapper",
+      },
+    },
+    content: "",
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const autosave = debounce(() => {
+      const content = editor.getHTML();
+      localStorage.setItem("draft", content);
+    }, 1000);
+
+    editor.on("update", autosave);
+
+    const saved = localStorage.getItem("draft");
+    if (saved) editor.commands.setContent(saved);
+
+    return () => editor.off("update", autosave);
+  }, [editor]);
 
   const handleUpload = async () => {
     const accessToken = localStorage.getItem("accessToken");
+    if (!editor) return;
+    const htmlContent = editor.getHTML();
+
     try {
       const response = await axios.post(
-        "http://localhost:8080/records/",
+        API.CREATE_RECORD,
         {
           title: editorTitle,
-          content: editorContent,
+          content: htmlContent,
         },
         {
           headers: {
@@ -21,38 +67,33 @@ const EditorArea = ({ onUploadSuccess, setPosts }) => {
         }
       );
 
-      console.log("✅ 업로드 성공:", response.data);
       alert("업로드 완료!");
-
       const backendPost = response.data.result;
-      const transformedPost = transformPostData(backendPost);
-      // ✅ 여기서 직접 setPosts 호출!
-      setPosts((prev) => [transformedPost, ...prev]);
+      const transformed = transformPostData(backendPost);
+      setPosts((prev) => [transformed, ...prev]);
       onUploadSuccess?.();
 
-      // 원하면 초기화도 가능
       setEditorTitle("");
-      setEditorContent("");
-    } catch (error) {
-      console.error("❌ 업로드 실패:", error);
+      editor.commands.setContent("");
+      localStorage.removeItem("draft");
+    } catch (err) {
+      console.error("업로드 실패:", err);
       alert("업로드 실패! 서버 확인 필요.");
     }
   };
 
-  const transformPostData = (backendPost) => {
-    return {
-      id: backendPost.recordId,
-      title: backendPost.title,
-      author: backendPost.author,
-      preview: [backendPost.content], // 앞 2줄 미리보기
-      date: new Date(backendPost.createdAt).toLocaleDateString("ko-KR", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-      tags: [], // 아직 태그가 없으니까 빈 배열로 처리
-    };
-  };
+  const transformPostData = (post) => ({
+    id: post.recordId,
+    title: post.title,
+    author: post.author,
+    preview: [post.content],
+    date: new Date(post.createdAt).toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }),
+    tags: [],
+  });
 
   return (
     <div className="h-screen flex-1 max-w-3xl py-10">
@@ -63,26 +104,24 @@ const EditorArea = ({ onUploadSuccess, setPosts }) => {
             value={editorTitle}
             onChange={(e) => setEditorTitle(e.target.value)}
             placeholder="제목을 입력하세요"
-            className="w-full text-xl font-medium focus:outline-none"
+            className="w-full text-2xl font-bold focus:outline-none"
           />
         </div>
-        <div className="flex-1 p-3">
-          <textarea
-            value={editorContent}
-            onChange={(e) => setEditorContent(e.target.value)}
-            placeholder="내용을 입력하세요..."
-            className="w-full h-full resize-none focus:outline-none"
-          ></textarea>
+
+        <div className="flex-1 p-3 overflow-y-auto">
+          {editor ? (
+            <EditorContent editor={editor} />
+          ) : (
+            <p className="text-gray-400">에디터 로딩 중...</p>
+          )}
         </div>
+
         <div className="border-t p-3 flex justify-end gap-2">
           <button
             onClick={handleUpload}
-            className="px-4 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300 transition-colors"
+            className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
           >
             업로드
-          </button>
-          <button className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors">
-            저장
           </button>
         </div>
       </div>

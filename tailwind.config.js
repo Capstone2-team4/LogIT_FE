@@ -1,10 +1,11 @@
+// tailwind.config.js
+import typography from "@tailwindcss/typography";
+
+/** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}", // 이 줄 꼭 있어야 함!
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [typography],
 };

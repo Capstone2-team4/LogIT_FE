@@ -6,7 +6,7 @@ import axios from "axios";
 const PostDetail = () => {
   const { id } = useParams();
   const [post, setPost] = useState(null);
-  const [currentView, setCurrentView] = useState("home"); // "home" 또는 "editor"
+  const [currentView, setCurrentView] = useState("home");
 
   const handleNavigate = (view) => {
     setCurrentView(view);
@@ -25,9 +25,9 @@ const PostDetail = () => {
           }
         );
 
-        setPost(response.data.result); // 백엔드에서 result로 감싸서 오면
+        setPost(response.data.result);
       } catch (error) {
-        console.error("❌ 게시글 불러오기 실패:", error);
+        console.error("\u274C 게시글 불러오기 실패:", error);
       }
     };
 
@@ -36,7 +36,6 @@ const PostDetail = () => {
 
   if (!post) return <div>Loading...</div>;
 
-  // 날짜 포맷팅: yyyy.MM.dd
   const formattedDate = new Date(post.createdAt).toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -45,25 +44,21 @@ const PostDetail = () => {
 
   return (
     <div className="flex h-screen w-full">
-      {/* 왼쪽 사이드바 */}
       <LeftSidebar onNavigate={handleNavigate} currentView={currentView} />
 
-      {/* 오른쪽 콘텐츠 */}
       <div className="flex-1 overflow-y-auto px-8 py-12 max-w-3xl mx-auto">
-        {/* 제목 */}
         <h1 className="text-4xl font-extrabold mb-3 leading-tight">
           {post.title}
         </h1>
-
-        {/* 작성자 / 날짜 */}
         <div className="text-gray-400 text-sm font-light mb-8">
           <span className="font-semibold">{post.author}</span> · {formattedDate}
         </div>
 
-        {/* 본문 내용 */}
-        <div className="text-lg leading-relaxed whitespace-pre-line">
-          {post.content}
-        </div>
+        {/* HTML로 저장된 내용 렌더링 */}
+        <div
+          className="prose prose-lg max-w-none"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
       </div>
     </div>
   );
