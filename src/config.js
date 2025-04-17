@@ -8,6 +8,7 @@ const API = {
   COMMITS: (owner, repo) => `${API_BASE_URL}/githubs/${owner}/${repo}/commits`,
   COMMIT_DETAILS: (owner, repo, commitId) =>
     `${API_BASE_URL}/githubs/${owner}/${repo}/commits/${commitId}/details`,
+  CREATE_RECORD: `${API_BASE_URL}/records/`,
 };
 
 export default API;
