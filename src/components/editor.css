@@ -1,52 +1,102 @@
-.editor-wrapper {
-  min-height: 500px;
-  padding: 16px;
-  font-size: 1rem;
-  background: white;
-  line-height: 1.8;
-  border-radius: 8px;
-  outline: none;
-
-  /* 글 본문 스타일 */
-  color: #1f2937; /* text-gray-800 */
-  font-family: "Inter", sans-serif;
+/* ———— 에디터 전체 컨테이너 ———— */
+.bn-editor,
+.bn-editor .editor-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
 }
 
-/* 코드블럭 스타일 */
-.editor-wrapper pre {
-  background-color: #f6f8fa;
-  color: #24292f;
+/* ———— 에디터 내부 텍스트 너비 확장 ———— */
+.bn-editor .ProseMirror {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 500px !important;
+  padding: 1rem;
+  box-sizing: border-box;
+  font-size: 1rem;
+  line-height: 1.8;
+  font-family: "Inter", sans-serif;
+  color: #1f2937; /* text-gray-800 */
+}
+
+/* ———— 에디터 코드블럭 스타일 ———— */
+.bn-editor pre {
+  background-color: #2d2d2d;
+  color: #ffffff;
   padding: 1rem;
   border-radius: 6px;
   font-size: 0.9rem;
   overflow-x: auto;
   line-height: 1.6;
   font-family: "Fira Code", monospace;
+  margin: 0.5rem 0;
 }
 
-.editor-wrapper code {
+/* 코드 블럭 내부 스타일 */
+.bn-editor pre code {
+  display: block;
   background-color: transparent;
   color: inherit;
   font-family: "Fira Code", monospace;
 }
 
-/* 포커스 시 테두리 제거 */
-.editor-wrapper:focus {
+/* 코드 블럭 언어 선택 스타일 */
+[data-language="javascript"] code {
+  color: #f1e05a;
+}
+
+[data-language="python"] code {
+  color: #3572a5;
+}
+
+[data-language="java"] code {
+  color: #b07219;
+}
+
+/* ———— 인라인 코드 스타일 ———— */
+.bn-editor code {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.875rem;
+}
+
+/* ———— 코드 블럭 외곽선 제거 ———— */
+.bn-editor:focus-within {
   outline: none;
 }
 
-/* editor.css 또는 index.css 등 */
-.prose pre {
-  background-color: #f3f4f6 !important; /* gray-100 */
+/* ———— 에디터 전체 배경 ———— */
+.bn-editor {
+  background-color: #ffffff;
   padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
+  border-radius: 8px;
 }
 
-.prose pre code {
-  background-color: transparent !important;
-  color: #1f2937; /* gray-800 */
-  font-size: 0.875rem;
-  line-height: 1.6;
-  font-family: "Source Code Pro", monospace;
+/* ———— 코드블럭 포커스 스타일 ———— */
+.bn-editor pre:focus-within {
+  outline: 2px solid #2563eb;
+}
+
+/* ———— 코드블럭 드래그 앤 드롭 스타일 ———— */
+.bn-editor pre[data-dragged="true"] {
+  background-color: #444444;
+  border: 2px dashed #888888;
+}
+
+/* ———— 스크롤바 스타일 ———— */
+.bn-editor::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.bn-editor::-webkit-scrollbar-thumb {
+  background-color: #888888;
+  border-radius: 4px;
+}
+
+.bn-editor::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
 }
