@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blocknote/code-block": "^0.30.0",
+    "@blocknote/core": "^0.30.0",
+    "@blocknote/mantine": "^0.30.0",
+    "@blocknote/react": "^0.30.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tiptap/extension-code-block-lowlight": "^2.11.7",
     "@tiptap/extension-image": "^2.11.7",

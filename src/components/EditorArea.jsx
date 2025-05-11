@@ -1,80 +1,70 @@
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import Image from "@tiptap/extension-image";
-import Youtube from "@tiptap/extension-youtube";
-
+import React, { useEffect, useState } from "react";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { codeBlock } from "@blocknote/code-block";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
 import axios from "axios";
 import API from "../config";
-import { useEffect, useState } from "react";
 import debounce from "lodash.debounce";
 import "./editor.css";
 
 const EditorArea = ({ setPosts, onUploadSuccess }) => {
   const [editorTitle, setEditorTitle] = useState("");
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: "내용을 입력하세요..." }),
-      TaskList,
-      TaskItem,
-      Image,
-      Youtube.configure({ width: 640, height: 360 }),
-    ],
-    editorProps: {
-      attributes: {
-        class: "prose prose-lg max-w-none editor-wrapper",
-      },
-    },
-    content: "",
+  const editor = useCreateBlockNote({
+    codeBlock,
   });
 
+  // Auto-save and load draft
   useEffect(() => {
     if (!editor) return;
-
     const autosave = debounce(() => {
-      const content = editor.getHTML();
-      localStorage.setItem("draft", content);
+      if (editor.commands?.getHTML) {
+        localStorage.setItem("draft", editor.getHTML());
+      }
     }, 1000);
 
-    editor.on("update", autosave);
+    editor.on("transaction", autosave);
 
     const saved = localStorage.getItem("draft");
-    if (saved) editor.commands.setContent(saved);
+    if (saved && editor.commands?.setHTML) {
+      editor.commands.setHTML(saved);
+    }
 
-    return () => editor.off("update", autosave);
+    return () => editor.off("transaction", autosave);
   }, [editor]);
 
   const handleUpload = async () => {
     const accessToken = localStorage.getItem("accessToken");
     if (!editor) return;
-    const htmlContent = editor.getHTML();
 
+    const htmlContent = editor.getHTML();
     try {
       const response = await axios.post(
         API.CREATE_RECORD,
-        {
-          title: editorTitle,
-          content: htmlContent,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { title: editorTitle, content: htmlContent },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
       alert("업로드 완료!");
       const backendPost = response.data.result;
-      const transformed = transformPostData(backendPost);
+      const transformed = {
+        id: backendPost.recordId,
+        title: backendPost.title,
+        author: backendPost.author,
+        preview: [backendPost.content],
+        date: new Date(backendPost.createdAt).toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
+        tags: [],
+      };
+
       setPosts((prev) => [transformed, ...prev]);
       onUploadSuccess?.();
-
       setEditorTitle("");
-      editor.commands.setContent("");
+      editor.commands.clearContent();
       localStorage.removeItem("draft");
     } catch (err) {
       console.error("업로드 실패:", err);
@@ -82,23 +72,10 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
     }
   };
 
-  const transformPostData = (post) => ({
-    id: post.recordId,
-    title: post.title,
-    author: post.author,
-    preview: [post.content],
-    date: new Date(post.createdAt).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }),
-    tags: [],
-  });
-
   return (
-    <div className="h-screen flex-1 max-w-3xl py-10">
-      <div className="border rounded-md h-full flex flex-col">
-        <div className="border-b p-3">
+    <div className="h-screen flex flex-col items-center py-6">
+      <div className="w-full max-w-6xl border rounded-md flex flex-col h-full">
+        <div className="border-b p-4">
           <input
             type="text"
             value={editorTitle}
@@ -108,15 +85,19 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
           />
         </div>
 
-        <div className="flex-1 p-3 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto w-full p-4">
           {editor ? (
-            <EditorContent editor={editor} />
+            <BlockNoteView
+              editor={editor}
+              className="bn-editor editor-wrapper w-full h-full"
+              style={{ minHeight: "600px", width: "100%" }}
+            />
           ) : (
             <p className="text-gray-400">에디터 로딩 중...</p>
           )}
         </div>
 
-        <div className="border-t p-3 flex justify-end gap-2">
+        <div className="border-t p-4 flex justify-end gap-2">
           <button
             onClick={handleUpload}
             className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
