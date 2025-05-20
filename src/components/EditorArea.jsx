@@ -11,9 +11,7 @@ import "./editor.css";
 
 const EditorArea = ({ setPosts, onUploadSuccess }) => {
   const [editorTitle, setEditorTitle] = useState("");
-  const editor = useCreateBlockNote({
-    codeBlock,
-  });
+  const editor = useCreateBlockNote({ codeBlock });
 
   // Auto-save and load draft
   useEffect(() => {
@@ -38,8 +36,9 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
     const accessToken = localStorage.getItem("accessToken");
     if (!editor) return;
 
-    const htmlContent = editor.getHTML();
     try {
+      //  HTML 변환 → 서버 업로드
+      const htmlContent = await editor.blocksToFullHTML(editor.document);
       const response = await axios.post(
         API.CREATE_RECORD,
         { title: editorTitle, content: htmlContent },
@@ -60,15 +59,21 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
         }),
         tags: [],
       };
-
       setPosts((prev) => [transformed, ...prev]);
       onUploadSuccess?.();
-      setEditorTitle("");
-      editor.commands.clearContent();
-      localStorage.removeItem("draft");
     } catch (err) {
       console.error("업로드 실패:", err);
       alert("업로드 실패! 서버 확인 필요.");
+      return; // 에러 났으면 바로 종료
+    }
+
+    // 성공 후 초기화
+    setEditorTitle("");
+    localStorage.removeItem("draft");
+
+    // 에디터 내용 지우기 (BlockNote에는 setHTML("") 사용)
+    if (editor.commands.setHTML) {
+      editor.commands.setHTML("");
     }
   };
 
