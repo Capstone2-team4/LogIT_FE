@@ -1,14 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ 페이지 이동용
 import LeftSidebar from "../components/LeftSidebar";
 import EditorArea from "../components/EditorArea";
 import BlogPostList from "../components/BlogPostList";
+import OwnerRepoSelectModal from "../components/OwnerRepoSelectModal"; // ✅ 오너/레포 선택 모달
 import axios from "axios";
 
 const MainLayout = () => {
-  const [currentView, setCurrentView] = useState("home"); // "home" 또는 "editor"
+  const [currentView, setCurrentView] = useState("home");
   const [posts, setPosts] = useState([]);
+  const [showModal, setShowModal] = useState(false); // ✅ 모달 상태
+
+  const navigate = useNavigate(); // ✅ 페이지 이동
+
+  // 선택된 깃허브 소유자 / 저장소
+  const [selectedOwner, setSelectedOwner] = useState(null);
+  const [selectedRepo, setSelectedRepo] = useState(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -39,7 +48,23 @@ const MainLayout = () => {
   }, []);
 
   const handleNavigate = (view) => setCurrentView(view);
-  const handleNewPost = () => setCurrentView("editor");
+
+  const handleNewPost = () => {
+    setShowModal(true); // ✅ 모달 띄우기
+  };
+
+  const handleModalConfirm = (owner, repo) => {
+    setSelectedOwner(owner);
+    setSelectedRepo(repo);
+    setShowModal(false);
+    navigate("/editor", {
+      state: { owner, repo }, // ✅ 선택값 전달
+    });
+  };
+
+  const handleModalCancel = () => {
+    setShowModal(false);
+  };
 
   return (
     <div className="flex h-screen w-full">
@@ -53,6 +78,8 @@ const MainLayout = () => {
         <div className="w-full px-8 py-8">
           {currentView === "editor" ? (
             <EditorArea
+              selectedOwner={selectedOwner}
+              selectedRepo={selectedRepo}
               onUploadSuccess={() => setCurrentView("home")}
               setPosts={setPosts}
             />
@@ -83,12 +110,20 @@ const MainLayout = () => {
                 </button>
               </div>
 
-              {/* 포스트 목록 - 넓은 영역에 배치 */}
+              {/* 포스트 목록 */}
               <BlogPostList posts={posts} onNewPost={handleNewPost} />
             </div>
           )}
         </div>
       </div>
+
+      {/* Owner / Repo 선택 모달 */}
+      {showModal && (
+        <OwnerRepoSelectModal
+          onClose={handleModalCancel}
+          onConfirm={handleModalConfirm}
+        />
+      )}
     </div>
   );
 };
