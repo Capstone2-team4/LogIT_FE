@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import LeftSidebar from "../components/LeftSidebar";
 import axios from "axios";
+import API from "../config";
 import "./editor.css";
 
 const PostDetail = () => {
@@ -17,15 +18,11 @@ const PostDetail = () => {
     const fetchPost = async () => {
       try {
         const accessToken = localStorage.getItem("accessToken");
-        const response = await axios.get(
-          `http://localhost:8080/records/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
+        const response = await axios.get(API.GET_RECORD(id), {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
         setPost(response.data.result);
       } catch (error) {
         console.error("\u274C 게시글 불러오기 실패:", error);

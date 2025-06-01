@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ 페이지 이동용
 import LeftSidebar from "../components/LeftSidebar";
@@ -7,6 +5,7 @@ import EditorArea from "../components/EditorArea";
 import BlogPostList from "../components/BlogPostList";
 import OwnerRepoSelectModal from "../components/OwnerRepoSelectModal"; // ✅ 오너/레포 선택 모달
 import axios from "axios";
+import API from "../config";
 
 const MainLayout = () => {
   const [currentView, setCurrentView] = useState("home");
@@ -23,7 +22,7 @@ const MainLayout = () => {
     const fetchPosts = async () => {
       const accessToken = localStorage.getItem("accessToken");
       try {
-        const response = await axios.get("http://localhost:8080/records/list", {
+        const response = await axios.get(API.GET_RECORD_LIST, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         const backendPosts = response.data.result.getRecordResultDTOList;

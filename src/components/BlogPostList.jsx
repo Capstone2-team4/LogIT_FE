@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import BlogPostCard from "./BlogPostCard";
-import API from "../config"; // API.GET_RECORD_LIST 가 설정되어 있다고 가정
+import API from "../config";
 
 const BlogPostList = ({ onDeleted, onCardClick }) => {
   const [posts, setPosts] = useState([]);

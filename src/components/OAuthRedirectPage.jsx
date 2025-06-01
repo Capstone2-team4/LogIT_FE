@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import API from "../config";
 
 const OAuthRedirectPage = () => {
   const [searchParams] = useSearchParams();
@@ -15,11 +16,10 @@ const OAuthRedirectPage = () => {
         window.history.replaceState({}, "", "/");
 
         try {
-          const response = await registerGihub({ providerId });
+          const response = await registerGithub({ providerId });
 
           if (response.success) {
             console.log("깃허브 등록 성공 ✅", response.data);
-
             navigate("/main");
           } else {
             console.error("깃허브 등록 실패 ❌", response.message);
@@ -39,14 +39,12 @@ const OAuthRedirectPage = () => {
   }, []);
 
   // ✅ 여기! login 함수 정의
-  const registerGihub = async ({ providerId }) => {
+  const registerGithub = async ({ providerId }) => {
     const accessToken = localStorage.getItem("accessToken");
     try {
       const response = await axios.post(
-        "http://localhost:8080/users/register/github",
-        {
-          providerId,
-        },
+        API.REGISTER_GITHUB,
+        { providerId },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

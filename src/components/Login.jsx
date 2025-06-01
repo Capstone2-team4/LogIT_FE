@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API from "../config";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -20,10 +21,10 @@ const Login = () => {
     setIsButtonDisabled(!(username && password));
   }, [username, password]);
 
-  // ✅ 여기! login 함수 정의
+  // 🔐 로그인 요청 함수
   const login = async ({ username, password }) => {
     try {
-      const response = await axios.post("http://localhost:8080/users/signin", {
+      const response = await axios.post(API.SIGNIN, {
         username,
         password,
       });
@@ -47,7 +48,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     console.log("로그인 정보:", { username, password });
 
     const response = await login({ username, password });
@@ -55,7 +55,6 @@ const Login = () => {
     if (response.success) {
       console.log("로그인 성공 ✅", response.data);
 
-      // 예: access token 저장 (필요 시)
       localStorage.setItem("accessToken", response.accessToken);
       const token = localStorage.getItem("accessToken");
       console.log("🔐 Access Token:", token);
@@ -68,7 +67,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center ">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="bg-white shadow-lg rounded-lg p-8 w-96">
         <h2 className="text-2xl font-bold mb-6 text-center">LogIT 로그인</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
