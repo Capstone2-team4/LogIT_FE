@@ -1,56 +1,103 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+// src/pages/EditorPage.jsx
+
+import { useState } from "react";
+import OwnerRepoSelectModal from "../components/OwnerRepoSelectModal";
 import CommitList from "../components/CommitList";
 import FileList from "../components/FileList";
 import CodePreviewBox from "../components/CodePreviewBox";
 import EditorArea from "../components/EditorArea";
+import axios from "axios";
+import API from "../config";
 
 const EditorPage = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { owner, repo } = location.state || {};
+  // 모달 보이기/숨기기 상태
+  const [isModalOpen, setIsModalOpen] = useState(true);
 
-  const [selectedOwner, setSelectedOwner] = useState(owner);
-  const [selectedRepo, setSelectedRepo] = useState(repo);
+  // 모달에서 선택된 owner/repo/branch
+  const [selectedOwner, setSelectedOwner] = useState(null);
+  const [selectedRepo, setSelectedRepo] = useState(null);
+  // (branch는 API 호출 시점에만 쓰고, 이후 화면에서는 필요 없으므로 별도 상태로 저장하지 않음)
+  //   const [selectedBranch, setSelectedBranch] = useState(null);
+
+  // 모달 확인 시 받아올 커밋 목록 배열
+  const [commits, setCommits] = useState([]);
+
+  // 유저가 Commit 중 하나를 클릭하면 해당 커밋 ID가 이곳으로 넘어옴
   const [clickedCommitId, setClickedCommitId] = useState(null);
 
-  useEffect(() => {
-    if (!owner || !repo) {
-      navigate("/main");
+  // “모달에서 확인” 버튼이 눌렸을 때 호출되는 함수
+  const handleModalConfirm = async (owner, repo, branch) => {
+    setIsModalOpen(false);
+
+    // 선택된 owner/repo를 상태로 저장
+    setSelectedOwner(owner);
+    setSelectedRepo(repo);
+
+    // 해당 API 호출 → 커밋 목록을 fetch
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const res = await axios.get(API.COMMITS(owner, repo, branch), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      // 받아온 데이터를 commits 상태에 저장
+      setCommits(res.data.result || []);
+    } catch (err) {
+      console.error("🔴 Commit fetch error in handleModalConfirm:", err);
+      setCommits([]);
     }
-  }, [owner, repo, navigate]);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
 
   return (
-    <div className="flex h-screen bg-gray-50 px-4 py-6 gap-x-4">
-      {/* 왼쪽: CommitList + FileList */}
-      <div className="w-[25%] bg-white rounded-2xl shadow p-3 flex flex-col">
-        <div className="flex-1 overflow-auto border-b pb-2 mb-2">
-          <CommitList
-            selectedOwner={selectedOwner}
-            selectedRepo={selectedRepo}
-            setSelectedOwner={setSelectedOwner}
-            setSelectedRepo={setSelectedRepo}
-            setClickedCommitId={setClickedCommitId}
-          />
-        </div>
-        <div className="flex-1 overflow-auto pt-2">
-          <FileList
-            selectedOwner={selectedOwner}
-            selectedRepo={selectedRepo}
-            commitId={clickedCommitId}
-          />
-        </div>
-      </div>
+    <div className="flex h-[calc(100vh-2rem)] m-4 gap-4">
+      {/* 모달이 열려있는 동안 Owner/Repo/Branch 선택 */}
+      {isModalOpen && (
+        <OwnerRepoSelectModal
+          onClose={handleModalClose}
+          onConfirm={handleModalConfirm}
+        />
+      )}
 
-      {/* 가운데: CodePreviewBox */}
-      <div className="w-[35%] bg-white rounded-2xl shadow p-4 overflow-auto">
-        <CodePreviewBox commitId={clickedCommitId} />
-      </div>
+      {/* 모달이 닫힌 뒤에만 화면을 렌더 */}
+      {!isModalOpen && (
+        <>
+          {/* 왼쪽: CommitList + FileList */}
+          <div className="w-[25%] flex flex-col">
+            {/* CommitList: prop으로 받은 commits 배열을 렌더 */}
+            <div className="flex-1 overflow-auto">
+              <CommitList
+                commits={commits}
+                setClickedCommitId={setClickedCommitId}
+              />
+            </div>
 
-      {/* 오른쪽: EditorArea */}
-      <div className="w-[40%] bg-white rounded-2xl shadow p-4 overflow-auto">
-        <EditorArea selectedOwner={selectedOwner} selectedRepo={selectedRepo} />
-      </div>
+            {/* FileList: 클릭된 커밋 ID를 prop으로 넘겨서 파일 목록을 렌더 */}
+            <div className="flex-1 overflow-auto">
+              <FileList
+                selectedOwner={selectedOwner}
+                selectedRepo={selectedRepo}
+                commitId={clickedCommitId}
+              />
+            </div>
+          </div>
+
+          {/* 가운데: CodePreviewBox */}
+          <div className="w-[35%] overflow-auto">
+            <CodePreviewBox commitId={clickedCommitId} />
+          </div>
+
+          {/* 오른쪽: EditorArea */}
+          <div className="w-[40%] overflow-auto">
+            <EditorArea
+              selectedOwner={selectedOwner}
+              selectedRepo={selectedRepo}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };
