@@ -104,6 +104,12 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
 
         <div className="border-t p-4 flex justify-end gap-2">
           <button
+            // onClick={}
+            className="px-4 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
+          >
+            AI 요약✨
+          </button>
+          <button
             onClick={handleUpload}
             className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
           >

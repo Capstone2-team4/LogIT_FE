@@ -6,8 +6,7 @@ import githubLogo from "../assets/github-mark.png";
 const LeftSidebar = ({ onNavigate, currentView }) => {
   const handleRegisterGithub = () => {
     console.log("🔐 GitHub 로그인 시도!");
-    window.location.href =
-      "http://18.233.222.13:8080/oauth2/authorization/github";
+    window.location.href = "http://localhost:8080/oauth2/authorization/github";
   };
 
   return (

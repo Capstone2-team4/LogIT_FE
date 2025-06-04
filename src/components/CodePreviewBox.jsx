@@ -3,7 +3,7 @@ import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 const CodePreviewBox = ({ file }) => {
   return (
-    <div className="border rounded-md p-4 mb-4 bg-white shadow-sm min-h-[280px]">
+    <div className="border rounded-md p-4 mb-4 bg-white shadow-sm min-h-[580px]">
       {file ? (
         <>
           <h4 className="font-bold text-sm mb-2 text-gray-800">
