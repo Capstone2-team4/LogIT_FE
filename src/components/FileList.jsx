@@ -1,5 +1,3 @@
-// src/components/FileList.jsx
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import API from "../config";
@@ -47,6 +45,26 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
 
   const truncate = (text, max = 100) =>
     text?.length > max ? `${text.slice(0, max)}...` : text;
+
+  // 클릭된 커밋 파일에 대해 전체 코드 조회 요청
+  const handleCommitFileClick = async (file) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await axios.get(
+        API.GET_SOURCE(owner, repo, file.filename, commitId),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log("✅ GET_SOURCE response:", res.data); // 콘솔에서 잘 갔는지 확인 가능
+      onFileClick({
+        filename: file.filename,
+        patch: file.patch,
+        fullSource: res.data.result,
+      });
+    } catch (err) {
+      console.error("🔴 전체 코드 로드 실패:", err);
+      onFileClick({ filename: file.filename, patch: file.patch });
+    }
+  };
 
   // 에러 항목 클릭 시 에러코드 리스트까지 가져와서 상위로 전달
   const handleErrorClick = async (errorInfoId) => {
@@ -105,9 +123,7 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
                 <li
                   key={file.id}
                   className="cursor-pointer px-2 py-1 border-b hover:bg-gray-100 hover:text-blue-700 transition"
-                  onClick={() =>
-                    onFileClick({ filename: file.filename, patch: file.patch })
-                  }
+                  onClick={() => handleCommitFileClick(file)}
                 >
                   {file.filename.split("/").pop()}
                 </li>
