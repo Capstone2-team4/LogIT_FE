@@ -7,19 +7,35 @@ import CodePreviewBox from "../components/CodePreviewBox";
 import EditorArea from "../components/EditorArea";
 
 const EditorPage = () => {
-  // 현재 선택된 Owner, Repo
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [selectedRepo, setSelectedRepo] = useState(null);
-
-  // 클릭된 Commit ID
   const [clickedCommitId, setClickedCommitId] = useState(null);
 
-  // 선택된 파일 (patch 정보 포함)
-  const [selectedFile, setSelectedFile] = useState(null);
+  // 선택된 커밋 파일 또는 에러 코드 리스트 객체
+  const [selectedPayload, setSelectedPayload] = useState(null);
+  // 선택된 에러 정보 ID
+  const [selectedErrorInfoId, setSelectedErrorInfoId] = useState(null);
+
+  const handleFileClick = (payload) => {
+    // 커밋 파일 클릭
+    if (payload.filename) {
+      setSelectedPayload({ file: payload });
+      setSelectedErrorInfoId(null);
+    }
+    // 에러 리스트 항목 클릭: 우선 errorInfoId 전달
+    else if (payload.errorInfoId) {
+      setSelectedErrorInfoId(payload.errorInfoId);
+      setSelectedPayload(null);
+    }
+    // 에러 코드 리스트 전달
+    else if (payload.errorCodeList) {
+      setSelectedPayload({ errorCodeList: payload.errorCodeList });
+      setSelectedErrorInfoId(null);
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-2rem)] m-4 gap-4">
-      {/* 왼쪽: CommitList + FileList */}
       <div className="w-[25%] flex flex-col">
         <div className="flex-1 overflow-auto">
           <CommitList
@@ -33,22 +49,24 @@ const EditorPage = () => {
             owner={selectedOwner}
             repo={selectedRepo}
             commitId={clickedCommitId}
-            onFileClick={setSelectedFile}
+            onFileClick={handleFileClick}
           />
         </div>
       </div>
 
-      {/* 가운데: CodePreviewBox */}
       <div className="w-[35%] overflow-auto">
-        <CodePreviewBox file={selectedFile} />
+        <CodePreviewBox
+          file={selectedPayload?.file || null}
+          errorInfoId={selectedErrorInfoId}
+          errorCodeList={selectedPayload?.errorCodeList || null}
+        />
       </div>
 
-      {/* 오른쪽: EditorArea */}
       <div className="w-[40%] overflow-auto">
         <EditorArea
           selectedOwner={selectedOwner}
           selectedRepo={selectedRepo}
-          file={selectedFile}
+          file={selectedPayload?.file || selectedPayload?.errorCodeList || null}
         />
       </div>
     </div>
