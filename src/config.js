@@ -19,6 +19,22 @@ const API = {
   COMMIT_DETAILS: (owner, repo, commitId) =>
     `${API_BASE_URL}/githubs/${owner}/${repo}/commits/${commitId}/details`,
 
+  // 에러 정보 조회
+  ERROR_INFO_LIST: (commitId) =>
+    `${API_BASE_URL}/errors/errorInfoList/${commitId}`,
+
+  // 에러 코드 리스트 조회 by errorInfoId
+  ERROR_CODE_LIST: (errorInfoId) =>
+    `${API_BASE_URL}/errors/errorCodeList/${errorInfoId}`,
+
+  // 에러 해결과정 코드 리스트 조회 by errorInfoId
+  ERROR_SOLVED_CODE_LIST: (errorInfoId) =>
+    `${API_BASE_URL}/errors/errorSolvedCodeList/${errorInfoId}`,
+
+  // 커밋 당시 전체 코드 조회 by owner, repo, filePath + commitId
+  GET_SOURCE: (owner, repo, filePath, commitId) =>
+    `${API_BASE_URL}/githubs/${owner}/${repo}/${filePath}?commitId=${commitId}`,
+
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,
   EDIT_RECORD: (recordId) => `${API_BASE_URL}/records/edit/${recordId}`,
