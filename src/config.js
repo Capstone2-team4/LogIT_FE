@@ -33,7 +33,9 @@ const API = {
 
   // 커밋 당시 전체 코드 조회 by owner, repo, filePath + commitId
   GET_SOURCE: (owner, repo, filePath, commitId) =>
-    `${API_BASE_URL}/githubs/${owner}/${repo}/${filePath}?commitId=${commitId}`,
+    `${API_BASE_URL}/githubs/${owner}/${repo}/file?filePath=${encodeURIComponent(
+      filePath
+    )}&commitId=${commitId}`,
 
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,
