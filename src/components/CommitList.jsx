@@ -5,7 +5,11 @@ import dayjs from "dayjs";
 import axios from "axios";
 import API from "../config";
 
-const CommitList = ({ setClickedCommitId }) => {
+const CommitList = ({
+  setSelectedOwner: setParentOwner,
+  setSelectedRepo: setParentRepo,
+  setClickedCommitId,
+}) => {
   // Dropdown state
   const [owners, setOwners] = useState([]);
   const [repositories, setRepositories] = useState([]);
@@ -24,7 +28,7 @@ const CommitList = ({ setClickedCommitId }) => {
   const [visibleCount, setVisibleCount] = useState(5);
 
   // Checkbox (radio) state: "commit" or "error"
-  const [filter, setFilter] = useState("commit"); // default to "commit"
+  const [filter, setFilter] = useState("commit");
 
   // Fetch owners on mount
   useEffect(() => {
@@ -49,12 +53,14 @@ const CommitList = ({ setClickedCommitId }) => {
     fetchOwners();
   }, []);
 
-  // When an owner is selected, reset repo/branch and fetch repos
+  // When an owner is selected, reset repo/branch, update parent, and fetch repos
   const selectOwner = async (owner) => {
     setSelectedOwner(owner.name);
+    setParentOwner(owner.name);
     setIsOwnerDropdownOpen(false);
 
     setSelectedRepo("Repository");
+    setParentRepo(null);
     setRepositories([]);
     setSelectedBranch("Branch");
     setBranches([]);
@@ -74,9 +80,10 @@ const CommitList = ({ setClickedCommitId }) => {
     }
   };
 
-  // When a repo is selected, reset branch and fetch branches
+  // When a repo is selected, reset branch, update parent, and fetch branches
   const selectRepo = async (repo) => {
     setSelectedRepo(repo);
+    setParentRepo(repo);
     setIsRepoDropdownOpen(false);
 
     setSelectedBranch("Branch");
@@ -139,7 +146,7 @@ const CommitList = ({ setClickedCommitId }) => {
 
   return (
     <div className="mt-4 w-full">
-      {/* ── Dropdowns + Confirm Button ── */}
+      {/* Dropdowns + Confirm Button */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {/* Owner Dropdown */}
         <div className="relative">
@@ -258,33 +265,7 @@ const CommitList = ({ setClickedCommitId }) => {
         </button>
       </div>
 
-      {/* ── Filter Radios ── */}
-      <div className="flex items-center gap-4 mb-4">
-        <label className="flex items-center gap-1 text-sm cursor-pointer">
-          <input
-            type="radio"
-            name="filter"
-            value="commit"
-            checked={filter === "commit"}
-            onChange={() => setFilter("commit")}
-            className="form-radio text-blue-600"
-          />
-          <span>커밋</span>
-        </label>
-        <label className="flex items-center gap-1 text-sm cursor-pointer">
-          <input
-            type="radio"
-            name="filter"
-            value="error"
-            checked={filter === "error"}
-            onChange={() => setFilter("error")}
-            className="form-radio text-blue-600"
-          />
-          <span>에러</span>
-        </label>
-      </div>
-
-      {/* ── Commit List ── */}
+      {/* Commit List */}
       <div className="flex flex-col space-y-2">
         {commits.length === 0 ? (
           <div className="p-2 text-sm text-gray-500">
@@ -312,7 +293,7 @@ const CommitList = ({ setClickedCommitId }) => {
         )}
       </div>
 
-      {/* ── Show More Button ── */}
+      {/* Show More Button */}
       {commits.length > visibleCount && (
         <div className="mt-3 text-center">
           <button
