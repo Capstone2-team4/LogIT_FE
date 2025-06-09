@@ -46,26 +46,60 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
   const truncate = (text, max = 100) =>
     text?.length > max ? `${text.slice(0, max)}...` : text;
 
-  // 클릭된 커밋 파일에 대해 전체 코드 조회 요청
-  const handleCommitFileClick = async (file) => {
-    try {
-      const token = localStorage.getItem("accessToken");
+  // // 클릭된 커밋 파일에 대해 전체 코드 조회 요청
+  // const handleCommitFileClick = async (file) => {
+  //   try {
+  //     const token = localStorage.getItem("accessToken");
       
-      const res = await axios.get(
+  //     const res = await axios.get(
+  //       API.GET_SOURCE(owner, repo, file.filename, commitId),
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+  //     console.log("✅ GET_SOURCE response:", res.data); // 콘솔에서 잘 갔는지 확인 가능
+  //     onFileClick({
+  //       filename: file.filename,
+  //       patch: res.data.result.content,
+  //       fullSource: res.data.result,
+  //     });
+  //   } catch (err) {
+  //     console.error("🔴 전체 코드 로드 실패:", err);
+  //     onFileClick({ filename: file.filename, patch: file.patch });
+  //   }
+  // };
+
+  const handleCommitFileClick = async (file) => {
+  try {
+    const token = localStorage.getItem("accessToken");
+
+    const [sourceRes, blocksRes] = await Promise.all([
+      axios.get(
         API.GET_SOURCE(owner, repo, file.filename, commitId),
         { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log("✅ GET_SOURCE response:", res.data); // 콘솔에서 잘 갔는지 확인 가능
-      onFileClick({
-        filename: file.filename,
-        patch: res.data.result.content,
-        fullSource: res.data.result,
-      });
-    } catch (err) {
-      console.error("🔴 전체 코드 로드 실패:", err);
-      onFileClick({ filename: file.filename, patch: file.patch });
-    }
-  };
+      ),
+      axios.get(API.GET_CODE_BLOCKS(commitId), {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
+
+    const allBlocks = blocksRes.data.result.codeBlocks || [];
+
+    // 해당 파일과 일치하는 블록만 필터링
+    const filteredBlocks = allBlocks.filter(
+      (b) =>
+        b.status === "managed" &&
+        b.filePath.endsWith(file.filename)
+    );
+
+    onFileClick({
+      filename: file.filename,
+      patch: sourceRes.data.result.content,     // 전체 소스 코드
+      codeBlocks: filteredBlocks,               // 하이라이팅 정보
+    });
+  } catch (err) {
+    console.error("🔴 전체 코드 로드 실패:", err);
+    onFileClick({ filename: file.filename, patch: file.patch });
+  }
+};
 
   // 에러 항목 클릭 시 에러코드 리스트까지 가져와서 상위로 전달
   const handleErrorClick = async (errorInfoId) => {
