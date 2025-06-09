@@ -7,13 +7,25 @@ import "@blocknote/mantine/style.css";
 import axios from "axios";
 import API from "../config";
 import debounce from "lodash.debounce";
+import CommitList from "../components/CommitList";
 import "./editor.css";
 
 const EditorArea = ({ setPosts, onUploadSuccess }) => {
   const [editorTitle, setEditorTitle] = useState("");
   const editor = useCreateBlockNote({ codeBlock });
 
-  // Auto-save and load draft
+  // GitHub 정보
+  const [aiOwner, setAiOwner] = useState("");
+  const [aiRepo, setAiRepo] = useState("");
+  const [aiBranch, setAiBranch] = useState("");
+
+  // 모달 상태
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [selectedCommitIds, setSelectedCommitIds] = useState([]);
+  const [selectedCommitMessages, setSelectedCommitMessages] = useState([]);
+  const [summaryTemplate, setSummaryTemplate] = useState("");
+
+  // 드래프트 자동 저장
   useEffect(() => {
     if (!editor) return;
     const autosave = debounce(() => {
@@ -21,65 +33,131 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
         localStorage.setItem("draft", editor.getHTML());
       }
     }, 1000);
-
     editor.on("transaction", autosave);
-
     const saved = localStorage.getItem("draft");
     if (saved && editor.commands?.setHTML) {
       editor.commands.setHTML(saved);
     }
-
     return () => editor.off("transaction", autosave);
   }, [editor]);
 
+  // 저장된 템플릿 불러오기
+  useEffect(() => {
+    if (!isAIModalOpen) return;
+    const token = localStorage.getItem("accessToken");
+    axios
+      .get(API.SUMMARY_TEMPLATE, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(({ data }) => {
+        if (data.result?.template) setSummaryTemplate(data.result.template);
+      })
+      .catch((err) => console.error("템플릿 조회 실패:", err));
+  }, [isAIModalOpen]);
+
+  // 글 업로드
   const handleUpload = async () => {
-    const accessToken = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
     if (!editor) return;
-
     try {
-      //  HTML 변환 → 서버 업로드
-      const htmlContent = await editor.blocksToFullHTML(editor.document);
-      const response = await axios.post(
+      const html = await editor.blocksToFullHTML(editor.document);
+      const res = await axios.post(
         API.CREATE_RECORD,
-        { title: editorTitle, content: htmlContent },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { title: editorTitle, content: html },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       alert("업로드 완료!");
-      const backendPost = response.data.result;
-      const transformed = {
-        id: backendPost.recordId,
-        title: backendPost.title,
-        author: backendPost.author,
-        preview: [backendPost.content],
-        date: new Date(backendPost.createdAt).toLocaleDateString("ko-KR", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
-        tags: [],
-      };
-      setPosts((prev) => [transformed, ...prev]);
+      const post = res.data.result;
+      setPosts((prev) => [
+        {
+          id: post.recordId,
+          title: post.title,
+          author: post.author,
+          preview: [post.content],
+          date: new Date(post.createdAt).toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+          tags: [],
+        },
+        ...prev,
+      ]);
       onUploadSuccess?.();
     } catch (err) {
-      console.error("업로드 실패:", err);
+      console.error(err);
       alert("업로드 실패! 서버 확인 필요.");
-      return; // 에러 났으면 바로 종료
     }
+  };
 
-    // 성공 후 초기화
-    setEditorTitle("");
-    localStorage.removeItem("draft");
+  // 커밋 선택 토글
+  const handleCommitClick = (id, message) => {
+    setSelectedCommitIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setSelectedCommitMessages((prev) =>
+      prev.includes(message)
+        ? prev.filter((m) => m !== message)
+        : [...prev, message]
+    );
+  };
 
-    // 에디터 내용 지우기 (BlockNote에는 setHTML("") 사용)
-    if (editor.commands.setHTML) {
-      editor.commands.setHTML("");
+  // 템플릿 저장
+  const handleTemplateSave = async () => {
+    const token = localStorage.getItem("accessToken");
+    try {
+      await axios.post(
+        API.SUMMARY_TEMPLATE,
+        { template: summaryTemplate },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("템플릿이 저장되었습니다.");
+    } catch (err) {
+      console.error(err);
+      alert("템플릿 저장 중 오류 발생");
+    }
+  };
+
+  // AI 요약 실행
+  const handleAISubmit = async () => {
+    const token = localStorage.getItem("accessToken");
+    try {
+      const { data } = await axios.post(
+        API.SUMMARY(aiOwner, aiRepo),
+        { commitIdList: selectedCommitIds, template: summaryTemplate },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const summary = data.result.aiSummaryRecord;
+      console.log("AI summary:", summary);
+
+      const htmlContent = `<div><h3>AI 요약 결과</h3>${summary
+        .split("\n")
+        .map((line) => (line ? `<div>${line}</div>` : "<br/>"))
+        .join("")}</div>`;
+
+      if (editor?.commands) {
+        if (editor.commands.insertHTML) {
+          editor.commands.insertHTML(htmlContent);
+        } else if (editor.commands.setHTML) {
+          editor.commands.setHTML(htmlContent);
+        }
+        editor.commands.focus?.();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("AI 요약 중 오류 발생");
+    } finally {
+      setIsAIModalOpen(false);
+      setSelectedCommitIds([]);
+      setSelectedCommitMessages([]);
+      setSummaryTemplate("");
     }
   };
 
   return (
-    <div className="h-screen flex flex-col items-center py-6">
-      <div className="w-full max-w-6xl border rounded-md flex flex-col h-full">
+    <div className="h-screen flex flex-col items-center">
+      {/* 에디터 */}
+      <div className="w-full max-w-6xl rounded-md flex flex-col h-full">
         <div className="border-b p-4">
           <input
             type="text"
@@ -89,34 +167,110 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
             className="w-full text-2xl font-bold focus:outline-none"
           />
         </div>
-
         <div className="flex-1 overflow-y-auto w-full p-4">
           {editor ? (
             <BlockNoteView
               editor={editor}
               className="bn-editor editor-wrapper w-full h-full"
-              style={{ minHeight: "600px", width: "100%" }}
+              style={{ minHeight: "600px" }}
             />
           ) : (
             <p className="text-gray-400">에디터 로딩 중...</p>
           )}
         </div>
-
         <div className="border-t p-4 flex justify-end gap-2">
           <button
-            // onClick={}
-            className="px-4 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
+            onClick={() => setIsAIModalOpen(true)}
+            className="px-4 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-gray-800"
           >
             AI 요약✨
           </button>
           <button
             onClick={handleUpload}
-            className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
+            className="px-4 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800"
           >
             업로드
           </button>
         </div>
       </div>
+
+      {/* AI 요약 모달 */}
+      {isAIModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md w-11/12 max-w-3xl h-4/5 p-6 flex flex-col">
+            <h2 className="text-xl font-bold mb-4">
+              AI 요약할 커밋 리스트를 선택하세요.
+            </h2>
+            <div className="flex-1 overflow-y-auto border p-4 rounded mb-4">
+              <CommitList
+                selectedOwner={aiOwner}
+                selectedRepo={aiRepo}
+                selectedBranch={aiBranch}
+                setParentOwner={setAiOwner}
+                setParentRepo={setAiRepo}
+                setParentBranch={setAiBranch}
+                setClickedCommitId={handleCommitClick}
+              />
+            </div>
+            {selectedCommitMessages.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {selectedCommitMessages.map((msg, idx) => (
+                  <span
+                    key={idx}
+                    className="flex items-center bg-gray-100 px-2 py-1 rounded text-sm"
+                  >
+                    {msg}
+                    <button
+                      onClick={() => {
+                        setSelectedCommitMessages((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        );
+                        setSelectedCommitIds((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        );
+                      }}
+                      className="ml-1 text-gray-500 hover:text-gray-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <textarea
+              value={summaryTemplate}
+              onChange={(e) => setSummaryTemplate(e.target.value)}
+              placeholder="요약에 사용할 템플릿을 입력하세요..."
+              className="w-full h-24 border rounded p-2 mb-4 resize-none text-sm"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleTemplateSave}
+                className="mr-auto px-4 py-2 bg-green-500 text-white rounded-md text-sm hover:bg-green-600"
+              >
+                템플릿 저장
+              </button>
+              <button
+                onClick={() => setIsAIModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 rounded-md text-sm"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleAISubmit}
+                disabled={!selectedCommitIds.length || !summaryTemplate}
+                className={`px-4 py-2 rounded-md text-white ${
+                  !selectedCommitIds.length || !summaryTemplate
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                요약하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -50,7 +50,7 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
   const handleCommitFileClick = async (file) => {
     try {
       const token = localStorage.getItem("accessToken");
-      
+
       const res = await axios.get(
         API.GET_SOURCE(owner, repo, file.filename, commitId),
         { headers: { Authorization: `Bearer ${token}` } }

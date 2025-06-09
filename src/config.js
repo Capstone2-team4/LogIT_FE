@@ -13,7 +13,9 @@ const API = {
 
   // 커밋 목록 조회 (이제 branch가 필수)
   COMMITS: (owner, repo, branch) =>
-    `${API_BASE_URL}/githubs/${owner}/${repo}/${branch}/commits`,
+    `${API_BASE_URL}/githubs/${owner}/${repo}/${encodeURIComponent(
+      branch
+    )}/commits`,
 
   // 커밋 상세 조회
   COMMIT_DETAILS: (owner, repo, commitId) =>
@@ -37,10 +39,16 @@ const API = {
       filePath
     )}&commitId=${commitId}`,
 
-    // 커밋 ID로 코드블럭 리스트 조회
-  GET_CODE_BLOCKS: (commitId) =>
-  `${API_BASE_URL}/codes/blocks/${commitId}`,
+  // 커밋 ID로 코드블럭 리스트 조회
+  GET_CODE_BLOCKS: (commitId) => `${API_BASE_URL}/codes/blocks/${commitId}`,
 
+  // AI 글 요약
+  SUMMARY: (owners, repos) =>
+    `${API_BASE_URL}/summary?owners=${encodeURIComponent(
+      owners
+    )}&repos=${encodeURIComponent(repos)}`,
+
+  SUMMARY_TEMPLATE: `${API_BASE_URL}/summary/template`,
 
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,

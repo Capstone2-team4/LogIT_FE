@@ -54,12 +54,12 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
   // 커밋 뷰
   if (file && file.patch) {
     return (
-      <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
+      <div className="rounded-md p-4 mb-4  flex flex-col">
         {/* 파일 이름 */}
         <h4 className="font-bold text-sm mb-1 text-gray-800">
           {file.filename.split(/\\|\//).pop()}
         </h4>
-        <div className="flex-1 overflow-auto bg-white p-4 rounded">
+        <div className="flex-1 overflow-auto bg-white rounded">
           <SyntaxHighlighter
             language="java"
             style={github}
