@@ -37,6 +37,11 @@ const API = {
       filePath
     )}&commitId=${commitId}`,
 
+    // 커밋 ID로 코드블럭 리스트 조회
+  GET_CODE_BLOCKS: (commitId) =>
+  `${API_BASE_URL}/codes/blocks/${commitId}`,
+
+
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,
   EDIT_RECORD: (recordId) => `${API_BASE_URL}/records/edit/${recordId}`,

@@ -50,6 +50,7 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
   const handleCommitFileClick = async (file) => {
     try {
       const token = localStorage.getItem("accessToken");
+      
       const res = await axios.get(
         API.GET_SOURCE(owner, repo, file.filename, commitId),
         { headers: { Authorization: `Bearer ${token}` } }
@@ -57,7 +58,7 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
       console.log("✅ GET_SOURCE response:", res.data); // 콘솔에서 잘 갔는지 확인 가능
       onFileClick({
         filename: file.filename,
-        patch: file.patch,
+        patch: res.data.result.content,
         fullSource: res.data.result,
       });
     } catch (err) {
