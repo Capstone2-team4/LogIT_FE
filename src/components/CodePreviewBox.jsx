@@ -4,10 +4,26 @@ import axios from "axios";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import API from "../config";
+import CodeBlockCard from "../components/CodeBlockCard";
 
-const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
-  const [viewMode, setViewMode] = useState("errorCode"); // 에러코드가 디폴트
+const CodePreviewBox = ({
+  file,
+  deletedBlocks = [],
+  onDeleteBlock = () => {},
+  errorInfoId,
+  errorCodeList,
+}) => {
+  const [viewMode, setViewMode] = useState("commitcode");
   const [codes, setCodes] = useState([]);
+
+  // 뷰 모드 초기화: 파일 또는 에러가 바뀔 때
+  useEffect(() => {
+    if (file && file.patch) {
+      setViewMode("commitcode");
+    } else if (errorInfoId || (errorCodeList && errorCodeList.length > 0)) {
+      setViewMode("errorCode");
+    }
+  }, [file, errorInfoId, errorCodeList]);
 
   useEffect(() => {
     const loadCodes = async () => {
@@ -52,191 +68,196 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
     loadCodes();
   }, [viewMode, errorInfoId, errorCodeList]);
 
+  // 하이라이팅 로직 함수
+  // const renderHighlightedCode = (source, codeBlocks = []) => {
+  //   const sortedBlocks = [...codeBlocks].sort((a, b) => a.startOffset - b.startOffset);
+  //   let lastIndex = 0;
+  //   const elements = [];
 
-// 하이라이팅 로직 함수
-// const renderHighlightedCode = (source, codeBlocks = []) => {
-//   const sortedBlocks = [...codeBlocks].sort((a, b) => a.startOffset - b.startOffset);
-//   let lastIndex = 0;
-//   const elements = [];
+  //   sortedBlocks.forEach((block, i) => {
+  //     if (block.startOffset > lastIndex) {
+  //       elements.push(
+  //         <span key={`plain-${i}`}>
+  //           {source.slice(lastIndex, block.startOffset)}
+  //         </span>
+  //       );
+  //     }
 
-//   sortedBlocks.forEach((block, i) => {
-//     if (block.startOffset > lastIndex) {
-//       elements.push(
-//         <span key={`plain-${i}`}>
-//           {source.slice(lastIndex, block.startOffset)}
-//         </span>
-//       );
-//     }
+  //     elements.push(
+  //       <span
+  //         key={`highlight-${i}`}
+  //         className="relative group bg-yellow-200 text-black rounded-sm px-1 cursor-pointer"
+  //       >
+  //         {source.slice(block.startOffset, block.endOffset)}
+  //         <span
+  //         className="absolute bottom-full left-0 translate-x-2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded-md shadow-lg z-50 hidden group-hover:block"
+  //         style={{
+  //         whiteSpace: 'normal',
+  //         overflowWrap: 'anywhere',
+  //         maxWidth: '500px',
+  //         width: 'max-content',
+  //         maxHeight: '300px',
+  //         overflowY: 'auto',
+  //         }}
+  // >
+  //   {block.content}
+  // </span>
 
-//     elements.push(
-//       <span
-//         key={`highlight-${i}`}
-//         className="relative group bg-yellow-200 text-black rounded-sm px-1 cursor-pointer"
-//       >
-//         {source.slice(block.startOffset, block.endOffset)}
-//         <span
-//         className="absolute bottom-full left-0 translate-x-2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded-md shadow-lg z-50 hidden group-hover:block"
-//         style={{
-//         whiteSpace: 'normal',               
-//         overflowWrap: 'anywhere',           
-//         maxWidth: '500px',                  
-//         width: 'max-content',             
-//         maxHeight: '300px',                 
-//         overflowY: 'auto',                 
-//         }}  
-// >
-//   {block.content}
-// </span>
+  //       </span>
+  //     );
 
-//       </span>
-//     );
+  //     lastIndex = block.endOffset;
+  //   });
 
-//     lastIndex = block.endOffset;
-//   });
+  //   if (lastIndex < source.length) {
+  //     elements.push(<span key="last">{source.slice(lastIndex)}</span>);
+  //   }
 
-//   if (lastIndex < source.length) {
-//     elements.push(<span key="last">{source.slice(lastIndex)}</span>);
-//   }
+  //   return elements;
+  // };
+  // 줄별 하이라이팅 대상 계산 함수
+  const getHighlightedLines = (source, blocks) => {
+    const lines = source.split("\n");
+    const lineSet = new Set();
 
-//   return elements;
-// };
+    blocks?.forEach(({ startOffset, endOffset }) => {
+      let curr = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const len = lines[i].length + 1; // +1 for \n
+        const lineStart = curr;
+        const lineEnd = curr + len;
 
-// 줄별 하이라이팅 대상 계산 함수
-const getHighlightedLines = (source, blocks) => {
-  const lines = source.split("\n");
-  const lineSet = new Set();
+        if (endOffset > lineStart && startOffset < lineEnd) {
+          lineSet.add(i + 1); // 1-based line number
+        }
 
-  blocks?.forEach(({ startOffset, endOffset }) => {
-    let curr = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const len = lines[i].length + 1; // +1 for \n
-      const lineStart = curr;
-      const lineEnd = curr + len;
-
-      if (endOffset > lineStart && startOffset < lineEnd) {
-        lineSet.add(i + 1); // 1-based line number
-      }
-
-      curr += len;
-    }
-  });
-
-  return lineSet;
-};
-
-const lineToTooltipMap = useMemo(() => {
-  if (!file?.patch || !file.codeBlocks) return new Map();
-
-  const map = new Map();
-  const lines = file.patch.split("\n");
-  let curr = 0;
-
-  lines.forEach((line, i) => {
-    const lineStart = curr;
-    const lineEnd = curr + line.length + 1;
-
-    file.codeBlocks.forEach((block) => {
-      if (block.startOffset > lineStart && block.startOffset < lineEnd) {
-        if (!map.has(i + 1)) map.set(i + 1, []);
-        map.get(i + 1).push(block.content);
+        curr += len;
       }
     });
 
-    curr += line.length + 1;
-  });
+    return lineSet;
+  };
 
-  return map;
-}, [file?.patch, file?.codeBlocks]);
+  const lineToTooltipMap = useMemo(() => {
+    if (!file?.patch || !file.codeBlocks) return new Map();
 
+    const map = new Map();
+    const lines = file.patch.split("\n");
+    let curr = 0;
 
-  // // 커밋 뷰
-  // if (file && file.patch) {
-  //   return (
-  //     <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
-  //       {/* 파일 이름 */}
-  //       <h4 className="font-bold text-sm mb-1 text-gray-800">
-  //         {file.filename.split(/\\|\//).pop()}
-  //       </h4>
-  //       <div className="flex-1 overflow-auto bg-white p-4 rounded">
-  //         <SyntaxHighlighter
-  //           language="java"
-  //           style={github}
-  //           customStyle={{ fontSize: "12px" }}
-  //           wrapLines
-  //           wrapLongLines
-  //         >
-              
-  //         </SyntaxHighlighter>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-// if (file && file.patch) {
-//   return (
-//     <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
-//       {/* 파일 이름 */}
-//       <h4 className="font-bold text-sm mb-1 text-gray-800">
-//         {file.filename.split(/\\|\//).pop()}
-//       </h4>
-//       <div className="flex-1 overflow-auto bg-white p-4 rounded">
-//         <pre className="whitespace-pre-wrap font-mono text-sm">
-//           {renderHighlightedCode(file.patch, file.codeBlocks)}
-//         </pre>
-//       </div>
-//     </div>
-//   );
-// }
+    lines.forEach((line, i) => {
+      const lineStart = curr;
+      const lineEnd = curr + line.length + 1;
 
-const highlightedLines = useMemo(() => {
-  if (!file?.patch || !file.codeBlocks) return new Set();
-  return getHighlightedLines(file.patch, file.codeBlocks);
-}, [file?.patch, file?.codeBlocks]);
+      file.codeBlocks.forEach((block) => {
+        if (block.startOffset > lineStart && block.startOffset < lineEnd) {
+          if (!map.has(i + 1)) map.set(i + 1, []);
+          map.get(i + 1).push(block.content);
+        }
+      });
 
-if (file && file.patch) {
-  return (
-    <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
-      <h4 className="font-bold text-sm mb-1 text-gray-800">
-        {file.filename.split(/\\|\//).pop()}
-      </h4>
-      <div className="flex-1 overflow-auto bg-white p-4 rounded">
-        <SyntaxHighlighter
-          language="java"
-          style={github}
-          customStyle={{
-            fontSize: "12px",
-            backgroundColor: "white",
-            padding: "0",
-            margin: "0",
-          }}
-          wrapLines
-          showLineNumbers
-          lineProps={(lineNumber) => {
-            const isHighlighted = highlightedLines.has(lineNumber);
-            const contents = lineToTooltipMap.get(lineNumber);
+      curr += line.length + 1;
+    });
 
-            return {
-              className: contents ? "relative tooltip-line" : "",
-              style: isHighlighted
-                ? {
-                    backgroundColor: "#fff3b0",
-                    cursor: "pointer",
-                  }
-                : {},
-              "data-tooltip": contents ? contents.join("\n") : undefined,
-            };
-          }}
-        >
-          {file.patch}
-        </SyntaxHighlighter>
+    return map;
+  }, [file?.patch, file?.codeBlocks]);
+
+  const highlightedLines = useMemo(() => {
+    if (!file?.patch || !file.codeBlocks) return new Set();
+    return getHighlightedLines(file.patch, file.codeBlocks);
+  }, [file?.patch, file?.codeBlocks]);
+
+  // 커밋 뷰
+  if (file && file.patch) {
+    const fileName = file.filename.split(/\\|\//).pop();
+    return (
+      <div className="rounded-md p-4 mb-4 min-h-[700px] flex flex-col">
+        {/* 커밋코드 / 코드블럭 라디오 */}
+        <div className="mb-2">
+          <label className="inline-flex items-center mr-4 text-sm">
+            <input
+              type="radio"
+              name="fileView"
+              value="commitcode"
+              checked={viewMode === "commitcode"}
+              onChange={() => setViewMode("commitcode")}
+              className="form-radio"
+            />
+            <span className="ml-2">커밋코드</span>
+          </label>
+          <label className="inline-flex items-center text-sm">
+            <input
+              type="radio"
+              name="fileView"
+              value="codeblock"
+              checked={viewMode === "codeblock"}
+              onChange={() => setViewMode("codeblock")}
+              className="form-radio"
+            />
+            <span className="ml-2">코드블럭</span>
+          </label>
+        </div>
+
+        {/* 파일명 */}
+        <h4 className="font-bold text-sm mb-1 text-gray-800"> {fileName}</h4>
+
+        {/* 내용 영역 */}
+        <div className="flex-1 overflow-auto p-4 bg-white rounded">
+          {viewMode === "commitcode" ? (
+            <SyntaxHighlighter
+              language="java"
+              style={github}
+              customStyle={{
+                fontSize: "12px",
+                backgroundColor: "white",
+                padding: "0",
+                margin: "0",
+              }}
+              wrapLines
+              showLineNumbers
+              lineProps={(lineNumber) => {
+                const isHighlighted = highlightedLines.has(lineNumber);
+                const contents = lineToTooltipMap.get(lineNumber);
+
+                return {
+                  className: contents ? "relative tooltip-line" : "",
+                  style: isHighlighted
+                    ? {
+                        backgroundColor: "#fff3b0",
+                        cursor: "pointer",
+                      }
+                    : {},
+                  "data-tooltip": contents ? contents.join("\n") : undefined,
+                };
+              }}
+            >
+              {file.patch}
+            </SyntaxHighlighter>
+          ) : (
+            deletedBlocks
+              .filter(
+                (b) =>
+                  b.status === "deleted" &&
+                  b.filePath.split(/\\|\//).pop() === fileName
+              )
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+              .map((block) => (
+                <CodeBlockCard
+                  key={block.id}
+                  block={block}
+                  onDelete={onDeleteBlock}
+                />
+              ))
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // 에러 뷰
   if (errorInfoId || (errorCodeList && errorCodeList.length >= 0)) {
     return (
-      <div className="border rounded-md p-4 mb-4 bg-white shadow-sm min-h-[580px] flex flex-col">
+      <div className=" rounded-md p-4 mb-4 bg-white min-h-[700px] flex flex-col">
         <div className="mb-2">
           <label className="inline-flex items-center mr-4 text-sm">
             <input
