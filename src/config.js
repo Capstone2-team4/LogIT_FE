@@ -42,6 +42,9 @@ const API = {
   // 커밋 ID로 코드블럭 리스트 조회
   GET_CODE_BLOCKS: (commitId) => `${API_BASE_URL}/codes/blocks/${commitId}`,
 
+  // 코드블럭 삭제
+  DELETE_CODE_BLOCK: (snippetId) => `${API_BASE_URL}/codes/blocks/${snippetId}`,
+
   // AI 글 요약
   SUMMARY: (owners, repos) =>
     `${API_BASE_URL}/summary?owners=${encodeURIComponent(
