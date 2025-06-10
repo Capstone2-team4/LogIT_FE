@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import axios from "axios";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
@@ -51,28 +52,186 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
     loadCodes();
   }, [viewMode, errorInfoId, errorCodeList]);
 
-  // 커밋 뷰
-  if (file && file.patch) {
-    return (
-      <div className="rounded-md p-4 mb-4  flex flex-col">
-        {/* 파일 이름 */}
-        <h4 className="font-bold text-sm mb-1 text-gray-800">
-          {file.filename.split(/\\|\//).pop()}
-        </h4>
-        <div className="flex-1 overflow-auto bg-white rounded">
-          <SyntaxHighlighter
-            language="java"
-            style={github}
-            customStyle={{ fontSize: "12px" }}
-            wrapLines
-            wrapLongLines
-          >
-            {file.patch}
-          </SyntaxHighlighter>
-        </div>
+
+// 하이라이팅 로직 함수
+// const renderHighlightedCode = (source, codeBlocks = []) => {
+//   const sortedBlocks = [...codeBlocks].sort((a, b) => a.startOffset - b.startOffset);
+//   let lastIndex = 0;
+//   const elements = [];
+
+//   sortedBlocks.forEach((block, i) => {
+//     if (block.startOffset > lastIndex) {
+//       elements.push(
+//         <span key={`plain-${i}`}>
+//           {source.slice(lastIndex, block.startOffset)}
+//         </span>
+//       );
+//     }
+
+//     elements.push(
+//       <span
+//         key={`highlight-${i}`}
+//         className="relative group bg-yellow-200 text-black rounded-sm px-1 cursor-pointer"
+//       >
+//         {source.slice(block.startOffset, block.endOffset)}
+//         <span
+//         className="absolute bottom-full left-0 translate-x-2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded-md shadow-lg z-50 hidden group-hover:block"
+//         style={{
+//         whiteSpace: 'normal',               
+//         overflowWrap: 'anywhere',           
+//         maxWidth: '500px',                  
+//         width: 'max-content',             
+//         maxHeight: '300px',                 
+//         overflowY: 'auto',                 
+//         }}  
+// >
+//   {block.content}
+// </span>
+
+//       </span>
+//     );
+
+//     lastIndex = block.endOffset;
+//   });
+
+//   if (lastIndex < source.length) {
+//     elements.push(<span key="last">{source.slice(lastIndex)}</span>);
+//   }
+
+//   return elements;
+// };
+
+// 줄별 하이라이팅 대상 계산 함수
+const getHighlightedLines = (source, blocks) => {
+  const lines = source.split("\n");
+  const lineSet = new Set();
+
+  blocks?.forEach(({ startOffset, endOffset }) => {
+    let curr = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const len = lines[i].length + 1; // +1 for \n
+      const lineStart = curr;
+      const lineEnd = curr + len;
+
+      if (endOffset > lineStart && startOffset < lineEnd) {
+        lineSet.add(i + 1); // 1-based line number
+      }
+
+      curr += len;
+    }
+  });
+
+  return lineSet;
+};
+
+const lineToTooltipMap = useMemo(() => {
+  if (!file?.patch || !file.codeBlocks) return new Map();
+
+  const map = new Map();
+  const lines = file.patch.split("\n");
+  let curr = 0;
+
+  lines.forEach((line, i) => {
+    const lineStart = curr;
+    const lineEnd = curr + line.length + 1;
+
+    file.codeBlocks.forEach((block) => {
+      if (block.startOffset > lineStart && block.startOffset < lineEnd) {
+        if (!map.has(i + 1)) map.set(i + 1, []);
+        map.get(i + 1).push(block.content);
+      }
+    });
+
+    curr += line.length + 1;
+  });
+
+  return map;
+}, [file?.patch, file?.codeBlocks]);
+
+
+  // // 커밋 뷰
+  // if (file && file.patch) {
+  //   return (
+  //     <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
+  //       {/* 파일 이름 */}
+  //       <h4 className="font-bold text-sm mb-1 text-gray-800">
+  //         {file.filename.split(/\\|\//).pop()}
+  //       </h4>
+  //       <div className="flex-1 overflow-auto bg-white p-4 rounded">
+  //         <SyntaxHighlighter
+  //           language="java"
+  //           style={github}
+  //           customStyle={{ fontSize: "12px" }}
+  //           wrapLines
+  //           wrapLongLines
+  //         >
+              
+  //         </SyntaxHighlighter>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+// if (file && file.patch) {
+//   return (
+//     <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
+//       {/* 파일 이름 */}
+//       <h4 className="font-bold text-sm mb-1 text-gray-800">
+//         {file.filename.split(/\\|\//).pop()}
+//       </h4>
+//       <div className="flex-1 overflow-auto bg-white p-4 rounded">
+//         <pre className="whitespace-pre-wrap font-mono text-sm">
+//           {renderHighlightedCode(file.patch, file.codeBlocks)}
+//         </pre>
+//       </div>
+//     </div>
+//   );
+// }
+
+const highlightedLines = useMemo(() => {
+  if (!file?.patch || !file.codeBlocks) return new Set();
+  return getHighlightedLines(file.patch, file.codeBlocks);
+}, [file?.patch, file?.codeBlocks]);
+
+if (file && file.patch) {
+  return (
+    <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col">
+      <h4 className="font-bold text-sm mb-1 text-gray-800">
+        {file.filename.split(/\\|\//).pop()}
+      </h4>
+      <div className="flex-1 overflow-auto bg-white p-4 rounded">
+        <SyntaxHighlighter
+          language="java"
+          style={github}
+          customStyle={{
+            fontSize: "12px",
+            backgroundColor: "white",
+            padding: "0",
+            margin: "0",
+          }}
+          wrapLines
+          showLineNumbers
+          lineProps={(lineNumber) => {
+            const isHighlighted = highlightedLines.has(lineNumber);
+            const contents = lineToTooltipMap.get(lineNumber);
+
+            return {
+              className: contents ? "relative tooltip-line" : "",
+              style: isHighlighted
+                ? {
+                    backgroundColor: "#fff3b0",
+                    cursor: "pointer",
+                  }
+                : {},
+              "data-tooltip": contents ? contents.join("\n") : undefined,
+            };
+          }}
+        >
+          {file.patch}
+        </SyntaxHighlighter>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // 에러 뷰
   if (errorInfoId || (errorCodeList && errorCodeList.length >= 0)) {
