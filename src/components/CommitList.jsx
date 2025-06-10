@@ -1,41 +1,42 @@
-// src/components/CommitList.jsx
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import API from "../config";
 
 const CommitList = ({
-  setSelectedOwner: setParentOwner,
-  setSelectedRepo: setParentRepo,
+  selectedOwner,
+  selectedRepo,
+  selectedBranch,
+  setParentOwner,
+  setParentRepo,
+  setParentBranch,
   setClickedCommitId,
 }) => {
-  // Dropdown state
+  // Dropdown data
   const [owners, setOwners] = useState([]);
   const [repositories, setRepositories] = useState([]);
   const [branches, setBranches] = useState([]);
 
-  const [selectedOwner, setSelectedOwner] = useState("Owner");
-  const [selectedRepo, setSelectedRepo] = useState("Repository");
-  const [selectedBranch, setSelectedBranch] = useState("Branch");
+  // Local selection state
+  const [owner, setOwner] = useState(selectedOwner || "Owner");
+  const [repo, setRepo] = useState(selectedRepo || "Repository");
+  const [branch, setBranch] = useState(selectedBranch || "Branch");
 
+  // Toggles
   const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
   const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
 
-  // Commit list state
+  // Commits list
   const [commits, setCommits] = useState([]);
   const [visibleCount, setVisibleCount] = useState(5);
 
-  // Checkbox (radio) state: "commit" or "error"
-  const [filter, setFilter] = useState("commit");
-
-  // Fetch owners on mount
+  // Fetch owners once
   useEffect(() => {
     const fetchOwners = async () => {
       try {
-        const accessToken = localStorage.getItem("accessToken");
-        const config = { headers: { Authorization: `Bearer ${accessToken}` } };
+        const token = localStorage.getItem("accessToken");
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         const userRes = await axios.get(API.USER_REPOS, config);
         const orgRes = await axios.get(API.ORG_LIST, config);
 
@@ -44,7 +45,6 @@ const CommitList = ({
           name: org.orgName,
           type: "org",
         }));
-
         setOwners([userOwner, ...orgOwners]);
       } catch (err) {
         console.error("🔴 Owner fetch error:", err);
@@ -53,51 +53,50 @@ const CommitList = ({
     fetchOwners();
   }, []);
 
-  // When an owner is selected, reset repo/branch, update parent, and fetch repos
-  const selectOwner = async (owner) => {
-    setSelectedOwner(owner.name);
-    setParentOwner(owner.name);
+  // Handlers
+  const selectOwner = async (o) => {
+    setOwner(o.name);
+    setParentOwner(o.name);
     setIsOwnerDropdownOpen(false);
 
-    setSelectedRepo("Repository");
+    // reset downstream
+    setRepo("Repository");
     setParentRepo(null);
     setRepositories([]);
-    setSelectedBranch("Branch");
+    setBranch("Branch");
+    setParentBranch(null);
     setBranches([]);
     setCommits([]);
     setVisibleCount(5);
 
     try {
-      const accessToken = localStorage.getItem("accessToken");
-      const config = { headers: { Authorization: `Bearer ${accessToken}` } };
-      const url =
-        owner.type === "user" ? API.USER_REPOS : API.ORG_REPOS(owner.name);
+      const token = localStorage.getItem("accessToken");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const url = o.type === "user" ? API.USER_REPOS : API.ORG_REPOS(o.name);
       const res = await axios.get(url, config);
-      const repoNames = res.data.result.repoList.map((r) => r.repoName);
-      setRepositories(repoNames);
+      const repoList = res.data.result.repoList.map((r) => r.repoName);
+      setRepositories(repoList);
     } catch (err) {
       console.error("🔴 Repository fetch error:", err);
     }
   };
 
-  // When a repo is selected, reset branch, update parent, and fetch branches
-  const selectRepo = async (repo) => {
-    setSelectedRepo(repo);
-    setParentRepo(repo);
+  const selectRepo = async (r) => {
+    setRepo(r);
+    setParentRepo(r);
     setIsRepoDropdownOpen(false);
 
-    setSelectedBranch("Branch");
+    // reset below
+    setBranch("Branch");
+    setParentBranch(null);
     setBranches([]);
     setCommits([]);
     setVisibleCount(5);
 
     try {
-      const accessToken = localStorage.getItem("accessToken");
-      const config = { headers: { Authorization: `Bearer ${accessToken}` } };
-      const res = await axios.get(
-        API.GET_BRANCHES(selectedOwner, repo),
-        config
-      );
+      const token = localStorage.getItem("accessToken");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(API.GET_BRANCHES(owner, r), config);
       const branchNames = res.data.result.map((b) => b.branchName || b.name);
       setBranches(branchNames);
     } catch (err) {
@@ -105,33 +104,25 @@ const CommitList = ({
     }
   };
 
-  // When a branch is selected
-  const selectBranch = (branch) => {
-    setSelectedBranch(branch);
+  const selectBranch = (b) => {
+    setBranch(b);
+    setParentBranch(b);
     setIsBranchDropdownOpen(false);
 
+    // clear commits
     setCommits([]);
     setVisibleCount(5);
   };
 
-  // On confirm, fetch commits for owner/repo/branch
   const fetchCommits = async () => {
-    if (
-      selectedOwner === "Owner" ||
-      selectedRepo === "Repository" ||
-      selectedBranch === "Branch"
-    ) {
+    if (owner === "Owner" || repo === "Repository" || branch === "Branch") {
       alert("Owner, Repository, Branch를 모두 선택하세요.");
       return;
     }
     try {
-      const accessToken = localStorage.getItem("accessToken");
-      const res = await axios.get(
-        API.COMMITS(selectedOwner, selectedRepo, selectedBranch),
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+      const token = localStorage.getItem("accessToken");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const res = await axios.get(API.COMMITS(owner, repo, branch), config);
       setCommits(res.data.result || []);
       setVisibleCount(5);
     } catch (err) {
@@ -140,21 +131,20 @@ const CommitList = ({
     }
   };
 
-  const handleShowMore = () => {
+  const handleShowMore = () =>
     setVisibleCount((prev) => Math.min(prev + 5, commits.length));
-  };
 
   return (
     <div className="mt-4 w-full">
-      {/* Dropdowns + Confirm Button */}
+      {/* Dropdowns */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        {/* Owner Dropdown */}
+        {/* Owner */}
         <div className="relative">
           <button
-            onClick={() => setIsOwnerDropdownOpen((prev) => !prev)}
+            onClick={() => setIsOwnerDropdownOpen((p) => !p)}
             className="px-2 py-1 border rounded bg-white text-xs hover:bg-gray-50 flex items-center gap-1"
           >
-            <span className="font-semibold">{selectedOwner}</span>
+            <span className="font-semibold">{owner}</span>
             <svg
               className="w-4 h-4"
               fill="none"
@@ -171,26 +161,25 @@ const CommitList = ({
           </button>
           {isOwnerDropdownOpen && (
             <div className="absolute left-0 mt-1 w-40 bg-white border rounded shadow z-10 max-h-48 overflow-y-auto">
-              {owners.map((owner) => (
+              {owners.map((o) => (
                 <div
-                  key={owner.name}
-                  onClick={() => selectOwner(owner)}
+                  key={o.name}
+                  onClick={() => selectOwner(o)}
                   className="px-3 py-1 text-sm hover:bg-gray-100 cursor-pointer"
                 >
-                  {owner.name}
+                  {o.name}
                 </div>
               ))}
             </div>
           )}
         </div>
-
-        {/* Repo Dropdown */}
+        {/* Repo */}
         <div className="relative">
           <button
-            onClick={() => setIsRepoDropdownOpen((prev) => !prev)}
+            onClick={() => setIsRepoDropdownOpen((p) => !p)}
             className="px-2 py-1 border rounded bg-white text-xs hover:bg-gray-50 flex items-center gap-1"
           >
-            <span className="font-semibold">{selectedRepo}</span>
+            <span className="font-semibold">{repo}</span>
             <svg
               className="w-4 h-4"
               fill="none"
@@ -207,26 +196,25 @@ const CommitList = ({
           </button>
           {isRepoDropdownOpen && (
             <div className="absolute left-0 mt-1 w-40 bg-white border rounded shadow z-10 max-h-48 overflow-y-auto">
-              {repositories.map((repo) => (
+              {repositories.map((rName) => (
                 <div
-                  key={repo}
-                  onClick={() => selectRepo(repo)}
+                  key={rName}
+                  onClick={() => selectRepo(rName)}
                   className="px-3 py-1 text-sm hover:bg-gray-100 cursor-pointer"
                 >
-                  {repo}
+                  {rName}
                 </div>
               ))}
             </div>
           )}
         </div>
-
-        {/* Branch Dropdown */}
+        {/* Branch */}
         <div className="relative">
           <button
-            onClick={() => setIsBranchDropdownOpen((prev) => !prev)}
+            onClick={() => setIsBranchDropdownOpen((p) => !p)}
             className="px-2 py-1 border rounded bg-white text-xs hover:bg-gray-50 flex items-center gap-1"
           >
-            <span className="font-semibold">{selectedBranch}</span>
+            <span className="font-semibold">{branch}</span>
             <svg
               className="w-4 h-4"
               fill="none"
@@ -243,20 +231,18 @@ const CommitList = ({
           </button>
           {isBranchDropdownOpen && (
             <div className="absolute left-0 mt-1 w-40 bg-white border rounded shadow z-10 max-h-48 overflow-y-auto">
-              {branches.map((branch) => (
+              {branches.map((bName) => (
                 <div
-                  key={branch}
-                  onClick={() => selectBranch(branch)}
+                  key={bName}
+                  onClick={() => selectBranch(bName)}
                   className="px-3 py-1 text-sm hover:bg-gray-100 cursor-pointer"
                 >
-                  {branch}
+                  {bName}
                 </div>
               ))}
             </div>
           )}
         </div>
-
-        {/* Confirm Button */}
         <button
           onClick={fetchCommits}
           className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
@@ -264,36 +250,33 @@ const CommitList = ({
           확인
         </button>
       </div>
-
-      {/* Commit List */}
+      {/* Commits */}
       <div className="flex flex-col space-y-2">
         {commits.length === 0 ? (
           <div className="p-2 text-sm text-gray-500">
             선택하신 브랜치에 커밋이 없습니다.
           </div>
         ) : (
-          commits.slice(0, visibleCount).map((commit) => (
+          commits.slice(0, visibleCount).map((c) => (
             <div
-              key={commit.id}
+              key={c.id}
               className="flex items-center justify-between border-b pb-1"
             >
               <button
-                onClick={() => setClickedCommitId(commit.id)}
+                onClick={() => setClickedCommitId(c.id, c.message)}
                 className="text-left text-sm text-blue-600 underline hover:text-blue-800"
               >
-                {commit.message.length > 30
-                  ? `${commit.message.slice(0, 30)}...`
-                  : commit.message}
+                {c.message.length > 30
+                  ? `${c.message.slice(0, 30)}...`
+                  : c.message}
               </button>
               <span className="text-xs text-gray-500">
-                {dayjs(commit.date).format("YYYY-MM-DD HH:mm")}
+                {dayjs(c.date).format("YYYY-MM-DD HH:mm")}
               </span>
             </div>
           ))
         )}
       </div>
-
-      {/* Show More Button */}
       {commits.length > visibleCount && (
         <div className="mt-3 text-center">
           <button

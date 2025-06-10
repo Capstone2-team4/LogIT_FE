@@ -53,7 +53,7 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
   }, [viewMode, errorInfoId, errorCodeList]);
 
 
-  // 하이라이팅 로직 함수
+// 하이라이팅 로직 함수
 // const renderHighlightedCode = (source, codeBlocks = []) => {
 //   const sortedBlocks = [...codeBlocks].sort((a, b) => a.startOffset - b.startOffset);
 //   let lastIndex = 0;

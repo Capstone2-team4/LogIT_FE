@@ -46,6 +46,7 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
   const truncate = (text, max = 100) =>
     text?.length > max ? `${text.slice(0, max)}...` : text;
 
+
   // // 클릭된 커밋 파일에 대해 전체 코드 조회 요청
   // const handleCommitFileClick = async (file) => {
   //   try {
