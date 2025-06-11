@@ -51,7 +51,12 @@ const API = {
       owners
     )}&repos=${encodeURIComponent(repos)}`,
 
+  // 템플릿 조회, 삭제
   SUMMARY_TEMPLATE: `${API_BASE_URL}/summary/template`,
+
+  // AI 에러 요약
+  ERROR_SUMMARY: (errorInfoId) =>
+    `${API_BASE_URL}/summary/error?errorInfoId=${errorInfoId}`,
 
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,
