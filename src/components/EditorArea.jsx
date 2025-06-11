@@ -118,34 +118,42 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
     }
   };
 
-  // AI 요약 실행
+  // AI 요약 함수 (에디터에 바로 삽입 기능까지)
   const handleAISubmit = async () => {
     const token = localStorage.getItem("accessToken");
+
     try {
       const { data } = await axios.post(
         API.SUMMARY(aiOwner, aiRepo),
-        { commitIdList: selectedCommitIds, template: summaryTemplate },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const summary = data.result.aiSummaryRecord;
-      console.log("AI summary:", summary);
-
-      const htmlContent = `<div><h3>AI 요약 결과</h3>${summary
-        .split("\n")
-        .map((line) => (line ? `<div>${line}</div>` : "<br/>"))
-        .join("")}</div>`;
-
-      if (editor?.commands) {
-        if (editor.commands.insertHTML) {
-          editor.commands.insertHTML(htmlContent);
-        } else if (editor.commands.setHTML) {
-          editor.commands.setHTML(htmlContent);
+        {
+          commitIdList: selectedCommitIds,
+          template: summaryTemplate,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-        editor.commands.focus?.();
+      );
+
+      const summary = data.result.aiSummaryRecord;
+      console.log("✅ AI summary:", summary);
+
+      if (!summary || typeof summary !== "string") {
+        throw new Error("AI 요약 결과가 없습니다");
       }
+
+      // 기존 내용 뒤에 마크다운 형식으로 바꾼 글 추가
+      const blocks = await editor.tryParseMarkdownToBlocks(summary);
+      editor.insertBlocks(
+        blocks,
+        editor.document[editor.document.length - 1],
+        "after"
+      );
+
+      editor.focus();
+      alert("AI 요약이 완료되었습니다!");
     } catch (err) {
-      console.error(err);
-      alert("AI 요약 중 오류 발생");
+      console.error("❌ AI 요약 중 오류 발생:", err);
+      alert(`AI 요약 중 오류 발생: ${err.message}`);
     } finally {
       setIsAIModalOpen(false);
       setSelectedCommitIds([]);
