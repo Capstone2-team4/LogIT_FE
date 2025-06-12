@@ -123,7 +123,15 @@ const CommitList = ({
       const token = localStorage.getItem("accessToken");
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const res = await axios.get(API.COMMITS(owner, repo, branch), config);
-      setCommits(res.data.result || []);
+
+      // 날짜순으로 최신순 정렬 (내림차순)
+      const sortedCommits = (res.data.result || []).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA; // 최신순 (내림차순)
+      });
+
+      setCommits(sortedCommits);
       setVisibleCount(5);
     } catch (err) {
       console.error("🔴 Commit fetch error:", err);
@@ -250,6 +258,7 @@ const CommitList = ({
           확인
         </button>
       </div>
+
       {/* Commits */}
       <div className="flex flex-col space-y-2">
         {commits.length === 0 ? (
@@ -257,24 +266,30 @@ const CommitList = ({
             선택하신 브랜치에 커밋이 없습니다.
           </div>
         ) : (
-          commits.slice(0, visibleCount).map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between border-b pb-1"
-            >
-              <button
-                onClick={() => setClickedCommitId(c.id, c.message)}
-                className="text-left text-sm text-blue-600 underline hover:text-blue-800"
-              >
-                {c.message.length > 30
-                  ? `${c.message.slice(0, 30)}...`
-                  : c.message}
-              </button>
-              <span className="text-xs text-gray-500">
-                {dayjs(c.date).format("YYYY-MM-DD HH:mm")}
-              </span>
+          <>
+            {/* 정렬 정보 표시 */}
+            <div className="text-xs text-gray-400 mb-2">
+              총 {commits.length}개 커밋 (최신순)
             </div>
-          ))
+            {commits.slice(0, visibleCount).map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between border-b pb-1"
+              >
+                <button
+                  onClick={() => setClickedCommitId(c.id, c.message)}
+                  className="text-left text-sm text-blue-600 underline hover:text-blue-800"
+                >
+                  {c.message.length > 30
+                    ? `${c.message.slice(0, 30)}...`
+                    : c.message}
+                </button>
+                <span className="text-xs text-gray-500">
+                  {dayjs(c.date).format("YYYY-MM-DD HH:mm")}
+                </span>
+              </div>
+            ))}
+          </>
         )}
       </div>
       {commits.length > visibleCount && (
