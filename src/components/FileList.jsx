@@ -87,10 +87,16 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
         (b) => b.status === "managed" && b.filePath.endsWith(file.filename)
       );
 
+      // deleted인 코드블럭만 가져옴
+      const filteredBlocks_Deleted = allBlocks.filter(
+        (b) => b.status === "deleted" && b.filePath.endsWith(file.filename)
+      );
+
       onFileClick({
         filename: file.filename,
         patch: sourceRes.data.result.content, // 전체 소스 코드
         codeBlocks: filteredBlocks, // 하이라이팅 정보
+        deletedBlocks: filteredBlocks_Deleted, // deleted 코드블럭
       });
     } catch (err) {
       console.error("🔴 전체 코드 로드 실패:", err);

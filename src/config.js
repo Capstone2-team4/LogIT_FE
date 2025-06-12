@@ -42,13 +42,21 @@ const API = {
   // 커밋 ID로 코드블럭 리스트 조회
   GET_CODE_BLOCKS: (commitId) => `${API_BASE_URL}/codes/blocks/${commitId}`,
 
+  // 코드블럭 삭제
+  DELETE_CODE_BLOCK: (snippetId) => `${API_BASE_URL}/codes/blocks/${snippetId}`,
+
   // AI 글 요약
   SUMMARY: (owners, repos) =>
     `${API_BASE_URL}/summary?owners=${encodeURIComponent(
       owners
     )}&repos=${encodeURIComponent(repos)}`,
 
+  // 템플릿 조회, 삭제
   SUMMARY_TEMPLATE: `${API_BASE_URL}/summary/template`,
+
+  // AI 에러 요약
+  ERROR_SUMMARY: (errorInfoId) =>
+    `${API_BASE_URL}/summary/error?errorInfoId=${errorInfoId}`,
 
   // 글 기록 (레코드)
   CREATE_RECORD: `${API_BASE_URL}/records/`,

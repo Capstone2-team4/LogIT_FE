@@ -13,6 +13,7 @@ const EditorPage = () => {
   // 선택된 파일/에러코드 정보
   const [selectedPayload, setSelectedPayload] = useState(null);
   const [selectedErrorInfoId, setSelectedErrorInfoId] = useState(null);
+  const [deletedBlocks, setDeletedBlocks] = useState([]); // deleted 블럭도 저장
 
   const handleFileClick = (payload) => {
     console.log("@@@@@", payload);
@@ -23,12 +24,15 @@ const EditorPage = () => {
       // ✅ errorCodeList와 errorInfoId 둘 다 있는 경우
       setSelectedPayload({ errorCodeList: payload.errorCodeList });
       setSelectedErrorInfoId(payload.errorInfoId);
+      setDeletedBlocks(payload.deletedBlocks || []); // deletedBlocks 설정
     } else if (payload.errorInfoId) {
       setSelectedErrorInfoId(payload.errorInfoId);
       setSelectedPayload(null);
+      setDeletedBlocks([]);
     } else if (payload.errorCodeList) {
       setSelectedPayload({ errorCodeList: payload.errorCodeList });
       setSelectedErrorInfoId(null);
+      setDeletedBlocks([]);
     }
   };
 
@@ -60,6 +64,12 @@ const EditorPage = () => {
       <div className="w-1/3 overflow-auto border rounded p-2">
         <CodePreviewBox
           file={selectedPayload?.file || null}
+          deletedBlocks={deletedBlocks}
+          onDeleteBlock={(deletedId) =>
+            setDeletedBlocks((current) =>
+              current.filter((b) => b.id !== deletedId)
+            )
+          }
           errorInfoId={selectedErrorInfoId}
           errorCodeList={selectedPayload?.errorCodeList || null}
         />
