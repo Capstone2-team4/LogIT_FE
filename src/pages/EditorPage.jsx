@@ -20,6 +20,11 @@ const EditorPage = () => {
       setSelectedPayload({ file: payload });
       setSelectedErrorInfoId(null);
       setDeletedBlocks(payload.deletedBlocks || []); // deletedBlocks 설정
+    } else if (payload.errorInfoId && payload.errorCodeList) {
+      // ✅ errorCodeList와 errorInfoId 둘 다 있는 경우
+      setSelectedPayload({ errorCodeList: payload.errorCodeList });
+      setSelectedErrorInfoId(payload.errorInfoId);
+      setDeletedBlocks(payload.deletedBlocks || []); // deletedBlocks 설정
     } else if (payload.errorInfoId) {
       setSelectedErrorInfoId(payload.errorInfoId);
       setSelectedPayload(null);

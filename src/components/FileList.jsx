@@ -112,6 +112,10 @@ const FileList = ({ owner, repo, commitId, onFileClick }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       onFileClick({ errorCodeList: res.data.result.errorCodeList || [] });
+      onFileClick({
+        errorCodeList: res.data.result.errorCodeList || [],
+        errorInfoId, // ✅ errorInfoId 함께 전달
+      });
     } catch (err) {
       console.error("🔴 에러 코드 로드 실패:", err);
       onFileClick({ errorCodeList: [] });

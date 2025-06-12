@@ -167,6 +167,51 @@ const CodePreviewBox = ({
     return getHighlightedLines(file.patch, file.codeBlocks);
   }, [file?.patch, file?.codeBlocks]);
 
+  // 아래 함수들: 에러 코드에서 에러가 난 부분을 받아온 줄수에 맞게 하이라이팅하는 함수------------------------
+
+  // 에러 위치 하이라이팅을 위한 함수
+  const getErrorHighlightedLines = (code, errorLocation) => {
+    if (!errorLocation) return new Set();
+
+    const lines = code.split("\n");
+    const lineSet = new Set();
+
+    // errorLocation이 "라인 번호" 형태인 경우
+    if (typeof errorLocation === "string" && errorLocation.includes("라인")) {
+      const lineNumber = parseInt(errorLocation.match(/\d+/)?.[0]);
+      if (lineNumber) {
+        lineSet.add(lineNumber);
+      }
+    }
+    // errorLocation이 숫자인 경우
+    else if (typeof errorLocation === "number") {
+      lineSet.add(errorLocation);
+    }
+    // errorLocation이 문자열 패턴인 경우 해당 패턴이 포함된 라인 찾기
+    else if (typeof errorLocation === "string") {
+      lines.forEach((line, index) => {
+        if (line.includes(errorLocation)) {
+          lineSet.add(index + 1);
+        }
+      });
+    }
+
+    return lineSet;
+  };
+
+  // 에러 코드별 하이라이트 라인 계산
+  const errorHighlightedLines = useMemo(() => {
+    return codes.map((item) => {
+      if (viewMode === "errorCode" && item.errorLocation) {
+        return getErrorHighlightedLines(item.code, item.errorLocation);
+      } else if (viewMode === "solution" && item.errorCodeBlock) {
+        // 해결 과정에서는 errorCodeBlock의 startOffset, endOffset 사용
+        return getHighlightedLines(item.code, item.errorCodeBlock);
+      }
+      return new Set();
+    });
+  }, [codes, viewMode]);
+
   // 커밋 뷰
   if (file && file.patch) {
     const fileName = file.filename.split(/\\|\//).pop();
@@ -301,6 +346,19 @@ const CodePreviewBox = ({
                   }}
                   wrapLines
                   wrapLongLines
+                  showLineNumbers
+                  lineProps={(lineNumber) => {
+                    const isHighlighted =
+                      errorHighlightedLines[idx]?.has(lineNumber);
+                    return {
+                      style: isHighlighted
+                        ? {
+                            backgroundColor:
+                              viewMode === "errorCode" ? "#ffebee" : "#fff3b0",
+                          }
+                        : {},
+                    };
+                  }}
                 >
                   {item.code}
                 </SyntaxHighlighter>
