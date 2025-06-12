@@ -16,10 +16,10 @@ const EditorPage = () => {
   const [deletedBlocks, setDeletedBlocks] = useState([]); // deleted 블럭도 저장
 
   const handleFileClick = (payload) => {
-    console.log("@@@@@", payload);
     if (payload.filename) {
       setSelectedPayload({ file: payload });
       setSelectedErrorInfoId(null);
+      setDeletedBlocks(payload.deletedBlocks || []); // deletedBlocks 설정
     } else if (payload.errorInfoId && payload.errorCodeList) {
       // ✅ errorCodeList와 errorInfoId 둘 다 있는 경우
       setSelectedPayload({ errorCodeList: payload.errorCodeList });
