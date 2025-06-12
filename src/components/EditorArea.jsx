@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { codeBlock } from "@blocknote/code-block";
@@ -11,6 +12,7 @@ import AISummaryModal from "../components/AISummaryModal";
 import "./editor.css";
 
 const EditorArea = ({ setPosts, onUploadSuccess }) => {
+  const navigate = useNavigate();
   const [editorTitle, setEditorTitle] = useState("");
   const editor = useCreateBlockNote({ codeBlock });
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -51,6 +53,11 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
 
       alert("업로드 완료!");
 
+      // 메인 화면으로 이동
+      setTimeout(() => {
+        navigate("/main"); // 메인 페이지로 이동
+      }, 500);
+
       // 게시글 목록에 새 글 추가
       const post = res.data.result;
       setPosts((prev) => [
@@ -72,7 +79,6 @@ const EditorArea = ({ setPosts, onUploadSuccess }) => {
       onUploadSuccess?.();
     } catch (err) {
       console.error(err);
-      alert("업로드 실패! 서버 확인 필요.");
     }
   };
 

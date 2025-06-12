@@ -1,12 +1,18 @@
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Home, GitCommitHorizontal, Ban, User } from "lucide-react";
 import logo from "../assets/LogIT_Logo.png";
 import githubLogo from "../assets/github-mark.png";
 
 const LeftSidebar = ({ onNavigate, currentView }) => {
+  const navigate = useNavigate();
   const handleRegisterGithub = () => {
     console.log("🔐 GitHub 로그인 시도!");
     window.location.href = "http://localhost:8080/oauth2/authorization/github";
+  };
+
+  const handleMainClick = () => {
+    navigate("/main");
   };
 
   return (
@@ -17,13 +23,14 @@ const LeftSidebar = ({ onNavigate, currentView }) => {
         <div className="border-b w-full flex justify-center pb-4">
           <img
             src={logo}
+            onClick={handleMainClick}
             alt="LogIT Logo"
-            className="w-12 h-12 object-contain"
+            className="w-12 h-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
           />
         </div>
         {/* Nav 버튼들 */}
         <button
-          onClick={() => onNavigate("home")}
+          onClick={handleMainClick}
           className={`p-2 rounded-md ${
             currentView === "home" ? "bg-gray-200" : "hover:bg-gray-100"
           }`}
