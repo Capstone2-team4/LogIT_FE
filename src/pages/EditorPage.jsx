@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import CommitList from "../components/CommitList";
 import FileList from "../components/FileList";
 import CodePreviewBox from "../components/CodePreviewBox";
 import EditorArea from "../components/EditorArea";
 
 const EditorPage = () => {
+  const navigate = useNavigate();
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
@@ -36,10 +39,25 @@ const EditorPage = () => {
     }
   };
 
+  // 뒤로 가기
+  const handleGoBack = () => {
+    // 브라우저 히스토리를 이용한 뒤로가기
+    navigate(-1);
+  };
+
   return (
     <div className="flex h-[calc(100vh-2rem)] m-4 gap-4">
       <div className="w-[25%] flex flex-col">
         <div className="flex-1 overflow-auto">
+          {/* 뒤로가기 버튼 */}
+          <div className="flex items-center gap-3 pb-2">
+            <button
+              onClick={handleGoBack}
+              className=" hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          </div>
           <CommitList
             selectedOwner={selectedOwner}
             selectedRepo={selectedRepo}
