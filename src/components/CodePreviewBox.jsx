@@ -5,10 +5,25 @@ import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import API from "../config";
 import CodeBlockCard from "../components/CodeBlockCard";
 
-const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
-  const [viewMode, setViewMode] = useState("errorCode");
+const CodePreviewBox = ({
+  file,
+  deletedBlocks = [],
+  onDeleteBlock = () => {},
+  errorInfoId,
+  errorCodeList,
+}) => {
+  const [viewMode, setViewMode] = useState("commitcode");
   const [codes, setCodes] = useState([]);
   const [activeTooltipLine, setActiveTooltipLine] = useState(null);
+
+  // 뷰 모드 초기화: 파일 또는 에러가 바뀔 때
+  useEffect(() => {
+    if (file && file.patch) {
+      setViewMode("commitcode");
+    } else if (errorInfoId || (errorCodeList && errorCodeList.length > 0)) {
+      setViewMode("errorCode");
+    }
+  }, [file, errorInfoId, errorCodeList]);
 
   useEffect(() => {
     const loadCodes = async () => {
@@ -53,40 +68,50 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
     loadCodes();
   }, [viewMode, errorInfoId, errorCodeList]);
 
+  // 줄별 하이라이팅 대상 계산 함수
   const getHighlightedLines = (source, blocks) => {
     const lines = source.split("\n");
     const lineSet = new Set();
+
     blocks?.forEach(({ startOffset, endOffset }) => {
       let curr = 0;
       for (let i = 0; i < lines.length; i++) {
-        const len = lines[i].length + 1;
+        const len = lines[i].length + 1; // +1 for \n
         const lineStart = curr;
         const lineEnd = curr + len;
+
         if (endOffset > lineStart && startOffset < lineEnd) {
-          lineSet.add(i + 1);
+          lineSet.add(i + 1); // 1-based line number
         }
+
         curr += len;
       }
     });
+
     return lineSet;
   };
 
   const lineToTooltipMap = useMemo(() => {
     if (!file?.patch || !file.codeBlocks) return new Map();
+
     const map = new Map();
     const lines = file.patch.split("\n");
     let curr = 0;
+
     lines.forEach((line, i) => {
       const lineStart = curr;
       const lineEnd = curr + line.length + 1;
+
       file.codeBlocks.forEach((block) => {
         if (block.startOffset >= lineStart && block.startOffset < lineEnd) {
           if (!map.has(i + 1)) map.set(i + 1, []);
           map.get(i + 1).push(block);
         }
       });
+
       curr += line.length + 1;
     });
+
     return map;
   }, [file?.patch, file?.codeBlocks]);
 
@@ -95,75 +120,172 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
     return getHighlightedLines(file.patch, file.codeBlocks);
   }, [file?.patch, file?.codeBlocks]);
 
+  // 에러 위치 하이라이팅을 위한 함수
+  const getErrorHighlightedLines = (code, errorLocation) => {
+    if (!errorLocation) return new Set();
+
+    const lines = code.split("\n");
+    const lineSet = new Set();
+
+    // errorLocation이 "라인 번호" 형태인 경우
+    if (typeof errorLocation === "string" && errorLocation.includes("라인")) {
+      const lineNumber = parseInt(errorLocation.match(/\d+/)?.[0]);
+      if (lineNumber) {
+        lineSet.add(lineNumber);
+      }
+    }
+    // errorLocation이 숫자인 경우
+    else if (typeof errorLocation === "number") {
+      lineSet.add(errorLocation);
+    }
+    // errorLocation이 문자열 패턴인 경우 해당 패턴이 포함된 라인 찾기
+    else if (typeof errorLocation === "string") {
+      lines.forEach((line, index) => {
+        if (line.includes(errorLocation)) {
+          lineSet.add(index + 1);
+        }
+      });
+    }
+
+    return lineSet;
+  };
+
+  // 에러 코드별 하이라이트 라인 계산
+  const errorHighlightedLines = useMemo(() => {
+    return codes.map((item) => {
+      if (viewMode === "errorCode" && item.errorLocation) {
+        return getErrorHighlightedLines(item.code, item.errorLocation);
+      } else if (viewMode === "solution" && item.errorCodeBlock) {
+        // 해결 과정에서는 errorCodeBlock의 startOffset, endOffset 사용
+        return getHighlightedLines(item.code, item.errorCodeBlock);
+      }
+      return new Set();
+    });
+  }, [codes, viewMode]);
+
   const handleLineClick = (lineNumber) => {
     setActiveTooltipLine((prev) => (prev === lineNumber ? null : lineNumber));
   };
 
+  // 커밋 뷰
   if (file && file.patch) {
+    const fileName = file.filename.split(/\\|\//).pop();
     return (
-      <div className="border rounded-md p-4 mb-4 shadow-sm min-h-[700px] flex flex-col relative">
-        <h4 className="font-bold text-sm mb-1 text-gray-800">
-          {file.filename.split(/\\|\//).pop()}
-        </h4>
-        <div className="relative flex-1 overflow-auto bg-white p-4 rounded">
-          {activeTooltipLine && lineToTooltipMap.has(activeTooltipLine) && (
-            <div
-              className="absolute bg-gray-900 text-white text-xs rounded-md shadow-lg p-4"
-              style={{
-                top: `${(activeTooltipLine - 1) * 18 - 100}px`,
-                left: "15px",
-                transform: "translateY(-0%)",
-                maxWidth: "500px",
-                maxHeight: "300px",
-                overflowY: "auto",
-                whiteSpace: "normal",
-                zIndex: 100,
-              }}
-            >
-              {lineToTooltipMap.get(activeTooltipLine).map((item, idx) => (
-                <div
-                  key={idx}
-                  className="mb-3 border-b border-gray-700 pb-2 last:border-none last:pb-0"
-                >
-                  <div className="font-semibold text-yellow-300">
-                    📝 {item.title || "제목 없음"}
-                  </div>
-                  <div className="text-gray-300">
-                    📂 {item.category || "카테고리 없음"}
-                  </div>
-                  <div className="text-gray-400 text-xs mb-1">
-                    {new Date(item.createdAt).toLocaleString()}
-                  </div>
-                  <div className="text-white">{item.content}</div>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="rounded-md p-4 mb-4 min-h-[700px] flex flex-col relative">
+        {/* 커밋코드 / 코드블럭 라디오 */}
+        <div className="mb-2">
+          <label className="inline-flex items-center mr-4 text-sm">
+            <input
+              type="radio"
+              name="fileView"
+              value="commitcode"
+              checked={viewMode === "commitcode"}
+              onChange={() => setViewMode("commitcode")}
+              className="form-radio"
+            />
+            <span className="ml-2">커밋코드</span>
+          </label>
+          <label className="inline-flex items-center text-sm">
+            <input
+              type="radio"
+              name="fileView"
+              value="codeblock"
+              checked={viewMode === "codeblock"}
+              onChange={() => setViewMode("codeblock")}
+              className="form-radio"
+            />
+            <span className="ml-2">코드블럭</span>
+          </label>
+        </div>
 
-          <SyntaxHighlighter
-            language="java"
-            style={github}
-            customStyle={{
-              fontSize: "12px",
-              backgroundColor: "white",
-              padding: "0",
-              margin: "0",
-            }}
-            wrapLines
-            showLineNumbers
-            lineProps={(lineNumber) => {
-              const blocks = lineToTooltipMap.get(lineNumber);
-              const isHighlighted = highlightedLines.has(lineNumber);
-              return {
-                style: isHighlighted
-                  ? { backgroundColor: "#fff3b0", cursor: "pointer" }
-                  : {},
-                onClick: () => handleLineClick(lineNumber),
-              };
-            }}
-          >
-            {file.patch}
-          </SyntaxHighlighter>
+        {/* 파일명 */}
+        <h4 className="font-bold text-sm mb-1 text-gray-800">{fileName}</h4>
+
+        {/* 내용 영역 */}
+        <div className="flex-1 overflow-auto p-4 bg-white rounded relative">
+          {viewMode === "commitcode" ? (
+            <>
+              {/* 툴팁 표시 */}
+              {activeTooltipLine && lineToTooltipMap.has(activeTooltipLine) && (
+                <div
+                  className="absolute bg-gray-900 text-white text-xs rounded-md shadow-lg p-4"
+                  style={{
+                    top: `${(activeTooltipLine - 1) * 18 - 100}px`,
+                    left: "15px",
+                    transform: "translateY(-0%)",
+                    maxWidth: "500px",
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    whiteSpace: "normal",
+                    zIndex: 100,
+                  }}
+                >
+                  {lineToTooltipMap.get(activeTooltipLine).map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="mb-3 border-b border-gray-700 pb-2 last:border-none last:pb-0"
+                    >
+                      <div className="font-semibold text-yellow-300">
+                        📝 {item.title || "제목 없음"}
+                      </div>
+                      <div className="text-gray-300">
+                        📂 {item.category || "카테고리 없음"}
+                      </div>
+                      <div className="text-gray-400 text-xs mb-1">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </div>
+                      <div className="text-white">{item.content}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <SyntaxHighlighter
+                language="java"
+                style={github}
+                customStyle={{
+                  fontSize: "12px",
+                  backgroundColor: "white",
+                  padding: "0",
+                  margin: "0",
+                }}
+                wrapLines
+                showLineNumbers
+                lineProps={(lineNumber) => {
+                  const isHighlighted = highlightedLines.has(lineNumber);
+                  const hasTooltip = lineToTooltipMap.has(lineNumber);
+
+                  return {
+                    className: hasTooltip ? "relative tooltip-line" : "",
+                    style: isHighlighted
+                      ? {
+                          backgroundColor: "#fff3b0",
+                          cursor: "pointer",
+                        }
+                      : {},
+                    onClick: () => hasTooltip && handleLineClick(lineNumber),
+                  };
+                }}
+              >
+                {file.patch}
+              </SyntaxHighlighter>
+            </>
+          ) : (
+            deletedBlocks
+              .filter(
+                (b) =>
+                  b.status === "deleted" &&
+                  b.filePath.split(/\\|\//).pop() === fileName
+              )
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+              .map((block) => (
+                <CodeBlockCard
+                  key={block.id}
+                  block={block}
+                  onDelete={onDeleteBlock}
+                />
+              ))
+          )}
         </div>
       </div>
     );
@@ -172,7 +294,7 @@ const CodePreviewBox = ({ file, errorInfoId, errorCodeList }) => {
   // 에러 뷰
   if (errorInfoId || (errorCodeList && errorCodeList.length >= 0)) {
     return (
-      <div className=" rounded-md p-4 mb-4 bg-white min-h-[700px] flex flex-col">
+      <div className="rounded-md p-4 mb-4 bg-white min-h-[700px] flex flex-col">
         <div className="mb-2">
           <label className="inline-flex items-center mr-4 text-sm">
             <input
